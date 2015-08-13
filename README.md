@@ -10,7 +10,8 @@ verbose and hard to use.
 [ML](https://en.wikipedia.org/wiki/ML_%28programming_language%29),
 a higher-order functional programming language, is simple, practical and
 easy to understand, so that we jokingly implemented this compiler. You can
-easily use black magic in C++ template programming.
+easily use black magic in C++ template programming. Online demo is
+[here](http://akabe.github.io/evilml/).
 
 P.S. `constexpr` (supported C++11 or above) is useful. Why don't you use it?
 
