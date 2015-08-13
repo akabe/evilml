@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf8">
+    <link rel="stylesheet" href="css/codemirror.css">
+    <style text="text/css">
+     .CodeMirror {
+       font-size: 0.85em;
+       border: 1px solid #ccc;
+       height: auto;
+     }
+     .codebox {
+       width: 49%;
+     }
+     .leftbox {
+       float: left;
+     }
+     .rightbox {
+       float: right;
+     }
+    </style>
+    <title>Evil ML: ML to C++ template language</title>
+  </head>
+  <body>
+    <h1>Evil ML: ML to C++ template language</h1>
+    <p>See <a href="https://github.com/akabe/evilml">https://github.com/akabe/evilml</a> for details.</p>
+    <div><input type="button" value="Compile" id="btn_compile"></div>
+    <div class="codebox leftbox">
+      <h2>Input: OCaml code</h2>
+      <textarea id="mlcode">(* Example: quick sort *)
+
+type 'a list = [] | :: of 'a * 'a list
+
+let rec foldr f xs acc = match xs with
+  | [] -> acc
+  | x :: xs -> f x (foldr f xs acc)
+
+let length xs = foldr (fun _ acc -> acc + 1) xs 0
+let append xs ys = foldr (fun y acc -> y :: acc) xs ys
+let filter f xs = foldr (fun x acc -> if f x then x :: acc else acc) xs []
+
+let rec qsort xs = match xs with
+  | [] -> []
+  | [x] -> [x]
+  | pivot :: rest ->
+    let ys = qsort (filter (fun x -> x < pivot) rest) in
+    let zs = qsort (filter (fun x -> x >= pivot) rest) in
+    append ys (pivot :: zs)
+
+let rec nth i xs = match xs with
+  | [] -> error
+  | x :: xs -> if i = 0 then x else nth (i-1) xs
+
+let l1 = [5; 4; 8; 1; 6; 3; 7; 2]
+let l2 = qsort l1
+let x0 = nth 0 l2
+let x1 = nth 1 l2
+let x2 = nth 2 l2
+let x3 = nth 3 l2
+let x4 = nth 4 l2
+let x5 = nth 5 l2
+let x6 = nth 6 l2
+let x7 = nth 7 l2
+
+(*!
+// This is C++ code.
+
+#include <cstdio>
+
+int main () { // We use printf in order to output readable assembly code.
+  std::printf("%d  ", x0::val);
+  std::printf("%d  ", x1::val);
+  std::printf("%d  ", x2::val);
+  std::printf("%d  ", x3::val);
+  std::printf("%d  ", x4::val);
+  std::printf("%d  ", x5::val);
+  std::printf("%d  ", x6::val);
+  std::printf("%d\n", x7::val);
+  return 0;
+}
+*)</textarea>
+    </div>
+    <div class="codebox rightbox">
+      <h2>Output: C++ code</h2>
+      <textarea id="cppcode"></textarea>
+    </div>
+    <script src="js/codemirror.js"></script>
+    <script src="js/mllike.js"></script>
+    <script src="js/clike.js"></script>
+    <script>
+     var ocamlEditor = CodeMirror.fromTextArea(
+       document.getElementById("mlcode"),
+       {
+         mode: 'text/x-ocaml',
+         lineNumbers: true,
+         viewportMargin: Infinity
+       });
+     var cppEditor = CodeMirror.fromTextArea(
+       document.getElementById("cppcode"),
+       {
+         mode: 'text/x-c++src',
+         lineNumbers: true,
+         autoRefresh: true
+       });
+    </script>
+    <script src="js/evilml.js"></script>
+  </body>
+</html>
