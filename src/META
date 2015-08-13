@@ -1,0 +1,12 @@
+# OASIS_START
+# DO NOT EDIT (digest: a4f407cdb229d46a3346b75b3edb4c5e)
+version = "0.0.0"
+description = "A compiler from ML to C++ template language"
+requires = "ppx_deriving.show"
+archive(byte) = "libevilml.cma"
+archive(byte, plugin) = "libevilml.cma"
+archive(native) = "libevilml.cmxa"
+archive(native, plugin) = "libevilml.cmxs"
+exists_if = "libevilml.cma"
+# OASIS_STOP
+

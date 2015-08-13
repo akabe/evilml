@@ -1,0 +1,30 @@
+OASISFormat:             0.4
+Name:                    EvilML
+Version:                 0.0.0
+Synopsis:                A compiler from ML to C++ template language
+OCamlVersion:            >= 4.02
+Authors:                 Akinori ABE <abe@sf.ecei.tohoku.ac.jp>
+License:                 GPL-3
+Plugins:                 META (0.4), StdFiles (0.4), DevFiles (0.4)
+XStdFilesREADME:         false
+FilesAB:                 src/config.ml.ab
+BuildTools:              ocamlbuild
+AlphaFeatures:           ocamlbuild_more_args
+XOCamlbuildPluginTags:   package(js_of_ocaml.ocamlbuild)
+
+PostBuildCommand:        cp _build/src/jsmain.js html/js/
+
+Executable evilml
+  Path:                  src
+  MainIs:                main.ml
+  BuildTools:            ocamlbuild
+  BuildDepends:          ppx_deriving.show
+  CompiledObject:        native
+  DataFiles:             ../includes/*.hpp
+
+Executable evilml_js
+  Path:                  src
+  MainIs:                jsmain.ml
+  BuildTools:            ocamlbuild
+  BuildDepends:          ppx_deriving.show,js_of_ocaml
+  CompiledObject:        byte

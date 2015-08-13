@@ -1,0 +1,1 @@
+let datadir = "$(datadir)/$(pkg_name)"

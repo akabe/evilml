@@ -1,0 +1,8 @@
+(* OASIS_START *)
+(* DO NOT EDIT (digest: 5bc8414b3a9ce7e780fef3203ba11018) *)
+
+Authors of EvilML:
+
+* Akinori ABE <abe@sf.ecei.tohoku.ac.jp>
+
+(* OASIS_STOP *)
