@@ -12,7 +12,7 @@ BuildTools:              ocamlbuild
 AlphaFeatures:           ocamlbuild_more_args
 XOCamlbuildPluginTags:   package(js_of_ocaml.ocamlbuild)
 
-PostBuildCommand:        cp _build/src/jsmain.js html/js/
+PostBuildCommand:        cp _build/src/jsmain.js html/js/evilml.js
 
 Executable evilml
   Path:                  src
