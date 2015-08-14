@@ -10,8 +10,7 @@ verbose and hard to use.
 [ML](https://en.wikipedia.org/wiki/ML_%28programming_language%29),
 a higher-order functional programming language, is simple, practical and
 easy to understand, so that we jokingly implemented this compiler. You can
-easily use black magic in C++ template programming. Online demo is
-[here](http://akabe.github.io/evilml/).
+easily use black magic in C++ template programming.
 
 P.S. `constexpr` (supported C++11 or above) is useful. Why don't you use it?
 
@@ -41,28 +40,17 @@ Difference from OCaml:
 - Top-level shadowing of identifiers (variables, types, and constructors) is
   prohibited.
 
-Install
--------
-
-```
-$ ./configure
-$ make
-$ make install
-```
-
 Demo: quick sort
 ----------------
 
 [examples/quicksort/qsort.ml](examples/quicksort/qsort.ml) implements quick sort
 of a list of 8 elements. You can compile the ML program into C++ template as
-follows:
+[online demo](http://akabe.github.io/evilml/).
 
-```
-$ cd examples/quicksort
-$ evilml qsort.ml
-```
-
-Generated `qsort.cpp` works well:
+1. Check the check box of "Generate stand-alone code (embedding evilml.hpp)"
+2. Push the button "Compile"
+3. Copy and paste the generated C++ code into file `qsort.cpp`
+4. Try to compile and run it:
 
 ```
 $ g++ qsort.cpp
@@ -102,8 +90,8 @@ we suggest to use `g++ -S qsort.cpp` and open `qsort.s`:
 ...
 ```
 
-(Of course, you can use `std::cout` to print integers, however we make use of
-`printf` for readable assembly code.)
+(Of course, you can use `std::cout` to print integers in `qsort.cpp`,
+ however we make use of `printf` for readable assembly code.)
 
 Bugs
 ----
