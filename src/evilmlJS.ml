@@ -40,7 +40,7 @@ let report_error loc msg =
          Unsafe.inject (loc.EmlLocation.cnum_end);
          Unsafe.inject (string msg); |]
 
-let onclick _ =
+let compile () =
   let embed = to_bool (input "chk_embed")##checked in
   let in_code = editor_get "mlEditor" in
   let bf_tys = create_buffer_formatter 1024 in
@@ -64,9 +64,17 @@ let onclick _ =
     with
     | Compile_error ({ EmlLocation.loc; EmlLocation.data; }) ->
       report_error loc data
-  end;
-  bool true
+  end
 
-let _ =
-  let btn = getElementById "btn_compile" in
-  addEventListener btn Event.click (Dom.handler onclick) (bool false)
+let switch_example code () =
+  editor_set "mlEditor" code
+
+let () =
+  let set_onclick id f =
+    let handler _ = f () ; bool true in
+    let btn = getElementById id in
+    ignore (addEventListener btn Event.click (Dom.handler handler) (bool false))
+  in
+  set_onclick "btn_compile" compile;
+  set_onclick "btn_ex_fib" (switch_example Example_fib.contents);
+  set_onclick "btn_ex_qsort" (switch_example Example_qsort.contents)

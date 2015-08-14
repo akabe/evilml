@@ -1,3 +1,5 @@
+(* Example: quick sort *)
+
 type 'a list = [] | :: of 'a * 'a list
 
 let rec foldr f xs acc = match xs with

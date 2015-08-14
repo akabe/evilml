@@ -24,3 +24,4 @@ src/parser.mli
 src/parser.ml
 src/lexer.ml
 src/evilml_hpp.ml
+src/example_*.ml
