@@ -18,14 +18,24 @@
      .rightbox {
        float: right;
      }
+     #type_inf {
+       font-family: monospace;
+       white-space: pre;
+     }
     </style>
     <title>Evil ML: ML to C++ template language</title>
   </head>
   <body>
     <h1>Evil ML: ML to C++ template language</h1>
-    <p>See <a href="https://github.com/akabe/evilml">https://github.com/akabe/evilml</a> for details.<br>
-      Compilation of output C++ code requires <a href="https://github.com/akabe/evilml/blob/master/includes/evilml.hpp">evilml.hpp</a>.</p>
-    <div><input type="button" value="Compile" id="btn_compile"></div>
+    <p>See <a href="https://github.com/akabe/evilml">https://github.com/akabe/evilml</a> for details.</p>
+    <div>
+      <input type="button" value="Compile" id="btn_compile">
+      <input type="checkbox" id="chk_embed">
+      <label for="chk_embed">
+        Generate stand-alone code
+        (embedding <a href="https://github.com/akabe/evilml/blob/master/includes/evilml.hpp">evilml.hpp</a>)
+      </label>
+    </div>
     <div class="codebox leftbox">
       <h2>Input: OCaml code</h2>
       <textarea id="mlcode">(* Example: quick sort *)
@@ -80,6 +90,8 @@ int main () { // We use printf in order to output readable assembly code.
   return 0;
 }
 *)</textarea>
+        <h2>Type Inference Result</h2>
+        <textarea id="type_inf"></textarea>
     </div>
     <div class="codebox rightbox">
       <h2>Output: C++ code</h2>
@@ -89,19 +101,28 @@ int main () { // We use printf in order to output readable assembly code.
     <script src="js/mllike.js"></script>
     <script src="js/clike.js"></script>
     <script>
-     var ocamlEditor = CodeMirror.fromTextArea(
+     var mlEditor = CodeMirror.fromTextArea(
        document.getElementById("mlcode"),
        {
          mode: 'text/x-ocaml',
          lineNumbers: true,
          viewportMargin: Infinity
        });
+     var typeInfEditor = CodeMirror.fromTextArea(
+       document.getElementById("type_inf"),
+       {
+         mode: 'text/x-ocaml',
+         lineNumbers: true,
+         viewportMargin: Infinity,
+         readOnly: true
+       });
      var cppEditor = CodeMirror.fromTextArea(
        document.getElementById("cppcode"),
        {
          mode: 'text/x-c++src',
          lineNumbers: true,
-         autoRefresh: true
+         autoRefresh: true,
+         readOnly: true
        });
     </script>
     <script src="js/evilml.js"></script>
