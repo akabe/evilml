@@ -1,0 +1,5 @@
+language: cpp
+script: bash -e .travis-ci.sh
+cache: apt
+os:
+  - linux
