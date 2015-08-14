@@ -1,6 +1,8 @@
 Evil ML
 =======
 
+[![Build Status](https://travis-ci.org/akabe/evilml.svg)](https://travis-ci.org/akabe/evilml)
+
 Evil ML is a joke compiler from ML to **C++ template language**
 (not ordinary C++ code).
 
