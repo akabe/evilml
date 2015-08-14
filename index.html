@@ -130,9 +130,20 @@ int main () { // We use printf in order to output readable assembly code.
          readOnly: true
        });
 
-     function reportError (line1, ch1, line2, ch2, msg) {
+     function removeError () {
        var btn = document.getElementById("btn_unerror");
        if (!btn.disabled) btn.onclick(); // Remove the last error highlight
+     }
+
+     // Called when compilation succeeds.
+     function showResult (typeInfRes, outCode) {
+       removeError();
+       typeInfEditor.getDoc().setValue(typeInfRes);
+       cppEditor.getDoc().setValue(outCode);
+     }
+
+     function reportError (line1, ch1, line2, ch2, msg) {
+       removeError();
        // Line numbers are zero-based.
        var marker = mlEditor.markText(
          { line: line1 - 1, ch: ch1 },
@@ -140,6 +151,7 @@ int main () { // We use printf in order to output readable assembly code.
          { className: "line-error", title: msg }
        );
        // Enable "Remove error highlight" button
+       var btn = document.getElementById("btn_unerror");
        btn.disabled = false;
        btn.onclick = function () {
          marker.clear();
