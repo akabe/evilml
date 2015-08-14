@@ -132,7 +132,7 @@ int main () { // We use printf in order to output readable assembly code.
 
      function removeError () {
        var btn = document.getElementById("btn_unerror");
-       if (!btn.disabled) btn.onclick(); // Remove the last error highlight
+       if (!btn.disabled && btn.onclick) btn.onclick(); // Remove the last error highlight
      }
 
      // Called when compilation succeeds.
