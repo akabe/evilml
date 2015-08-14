@@ -29,32 +29,34 @@ type t =
   | Var of string option * type_var
   | Ref of t ref (* for destructive unification *)
 
-(** {2 EmlTypes} *)
+(** {2 Types} *)
 
 val genvar : ?name:string -> unit -> t
 
 val observe : t -> t
 val is_basetype : t -> bool
 val unarrow : t -> (t list * t) option
+val box_type : t -> bool * t
+val unbox_type : t -> bool * t
 
 val unify : loc:EmlLocation.t -> t -> t -> unit
 
 val pp : Format.formatter -> t -> unit
 
-(** {2 EmlType schemes} *)
+(** {2 Type schemes} *)
 
 type scheme
 
 type context = (string * scheme) list
 
 val scheme : t -> scheme
-
+val box_scheme : scheme -> bool * scheme
+val unbox_scheme : scheme -> bool * scheme
 val generalize : context -> t -> scheme
-
 val instantiate : scheme -> t
 
 val pp_scheme : Format.formatter -> scheme -> unit
 
-(** {2 EmlTyping contexts} *)
+(** {2 Typing contexts} *)
 
 val lookup : loc:EmlLocation.t -> string -> context -> scheme

@@ -37,42 +37,6 @@ and ext_expr =
 
 type top = ext_expr EmlTypedExpr.base_top [@@deriving show]
 
-let mk_exp_op ~loc op =
-  let typ = match op with
-    (* comparison operators (polymorphic) *)
-    | EmlOp.Eq (e1, e2) | EmlOp.Ne (e1, e2) | EmlOp.Gt (e1, e2) | EmlOp.Lt (e1, e2)
-    | EmlOp.Ge (e1, e2) | EmlOp.Le (e1, e2) ->
-      EmlType.unify ~loc e1.typ e2.typ;
-      EmlType.Bool
-    (* boolean operators *)
-    | EmlOp.Not e1 ->
-      EmlType.unify ~loc e1.typ EmlType.Bool;
-      EmlType.Bool
-    | EmlOp.And (e1, e2) | EmlOp.Or (e1, e2) ->
-      EmlType.unify ~loc e1.typ EmlType.Bool;
-      EmlType.unify ~loc e2.typ EmlType.Bool;
-      EmlType.Bool
-    (* integer operators *)
-    | EmlOp.Pos e1 | EmlOp.Neg e1 ->
-      EmlType.unify ~loc e1.typ EmlType.Int;
-      EmlType.Int
-    | EmlOp.Add (e1, e2) | EmlOp.Sub (e1, e2) | EmlOp.Mul (e1, e2) | EmlOp.Div (e1, e2)
-    | EmlOp.Mod (e1, e2) ->
-      EmlType.unify ~loc e1.typ EmlType.Int;
-      EmlType.unify ~loc e2.typ EmlType.Int;
-      EmlType.Int
-    (* floating-point-value operators *)
-    | EmlOp.FPos e1 | EmlOp.FNeg e1 ->
-      EmlType.unify ~loc e1.typ EmlType.Float;
-      EmlType.Int
-    | EmlOp.FAdd (e1, e2) | EmlOp.FSub (e1, e2) | EmlOp.FMul (e1, e2)
-    | EmlOp.FDiv (e1, e2) ->
-      EmlType.unify ~loc e1.typ EmlType.Float;
-      EmlType.unify ~loc e2.typ EmlType.Float;
-      EmlType.Float
-  in
-  { loc; typ; data = EmlOp op; }
-
 let rec typing_expr ctx { L.loc; L.data } = match data with
   | S.Error -> mk_exp_error ~loc ()
   | S.Const S.Unit -> mk_exp_unit ~loc ()

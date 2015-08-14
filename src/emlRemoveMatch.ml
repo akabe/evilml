@@ -30,7 +30,8 @@ type top = ext_expr base_top [@@deriving show]
 
 let mk_exp_proj ~loc ~typ e i = { loc; typ; data = Ext (Proj (e, i)); }
 let mk_exp_tag ~loc e = { loc; typ = EmlType.Int; data = Ext (Tag e); }
-let mk_exp_eq ~loc e1 e2 = { loc; typ = EmlType.Bool; data = EmlOp (EmlOp.Eq (e1, e2)); }
+let mk_exp_eq ~loc e1 e2 =
+  { loc; typ = EmlType.Bool; data = Op (EmlOp.Eq (e1, e2)); }
 let mk_exp_if_eq ~loc e_lhs e_rhs e2 e3 =
   mk_exp_if ~loc (mk_exp_eq ~loc e_lhs e_rhs) e2 e3
 
@@ -64,7 +65,7 @@ let rec conv_expr e = match e.data with
   | Var id -> { e with data = Var id }
   | Constr (id, el) -> { e with data = Constr (id, List.map conv_expr el) }
   | Tuple el -> { e with data = Tuple (List.map conv_expr el) }
-  | EmlOp op -> { e with data = EmlOp (EmlOp.map conv_expr op) }
+  | Op op -> { e with data = Op (EmlOp.map conv_expr op) }
   | Abs (args, e0) -> { e with data = Abs (args, conv_expr e0) }
   | App (e0, el) ->
     { e with data = App (conv_expr e0, List.map conv_expr el) }

@@ -25,7 +25,7 @@ and expr_desc =
   | Const of EmlSyntax.const
   | Var of string
   | If of expr * expr * expr
-  | EmlOp of expr EmlOp.t
+  | Op of expr EmlOp.t
   | Tuple of expr list
   | Constr of string * expr list
   | App of expr * expr list

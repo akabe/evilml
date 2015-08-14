@@ -72,8 +72,8 @@ let compile ~embed in_fname in_code =
   |> EmlUnCurrying.convert (* EmlUnCurrying functions *)
   |> EmlAssoc.convert (* Transformation for C++ *)
   |> EmlBoxing.convert builtin_ctx (* Insert boxing/unboxing *)
-  |> (fun tops -> EmlAlpha.convert (* EmlAlpha conversion (renaming identifiers) *)
-         (EmlAlpha.make_renamer builtin_tbl tops) tops)
+  |> (fun tops -> (* EmlAlpha conversion (renaming identifiers) *)
+      EmlAlpha.convert (EmlAlpha.make_renamer builtin_tbl tops) tops)
   |> EmlFlatLet.convert (* Flatten let-expressions *)
   |> EmlCpp.convert ~header (* Convert ML code into C++ template code *)
   |> List.iter (fprintf bf_out.ppf "%a@\n@\n" EmlCpp.pp_decl);
@@ -113,7 +113,8 @@ let onclick _ =
         [| Unsafe.inject (string tyinf);
            Unsafe.inject (string out_code); |]
     with
-    | Compile_error ({ EmlLocation.loc; EmlLocation.data; }) -> report_error loc data
+    | Compile_error ({ EmlLocation.loc; EmlLocation.data; }) ->
+      report_error loc data
   end;
   bool true
 

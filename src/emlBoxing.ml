@@ -15,9 +15,9 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open EmlUtils
 open Format
 open EmlTypedExpr
-open EmlUtils
 
 module M = EmlRemoveMatch
 
@@ -30,68 +30,95 @@ and ext_expr =
 
 type top = ext_expr base_top [@@deriving show]
 
-let rec box_type t = match EmlType.observe t with
-  | EmlType.Bool | EmlType.Char | EmlType.Int | EmlType.Float ->
-    EmlType.Tconstr ("__ml_boxed", [t])
-  | EmlType.Arrow (args, ret) ->
-    EmlType.Arrow (List.map box_type args, box_type ret)
-  | EmlType.Tconstr (name, tl) when name <> "__ml_boxed" ->
-    EmlType.Tconstr (name, List.map box_type tl)
-  | _ -> t
-
-let unbox_type t = match EmlType.observe t with
-  | EmlType.Tconstr ("__ml_boxed", [t']) -> Some t'
-  | _ -> None
-
 (** Insert boxing if a given expression has a base type. *)
 let box_expr e =
-  { loc = e.loc;
-    typ = box_type e.typ;
-    data = if EmlType.is_basetype e.typ then Ext (Box e) else e.data; }
+  let (need, typ) = EmlType.box_type e.typ in
+  { loc = e.loc; typ; data = if need then Ext (Box e) else e.data; }
 
 (** Insert unboxing if a given expression has a boxed type. *)
-let unbox_expr e = match unbox_type e.typ with
-  | Some t -> { loc = e.loc; typ = t; data = Ext (Unbox e); }
-  | None -> e
+let unbox_expr e = match EmlType.unbox_type e.typ with
+  | (true, typ) -> { loc = e.loc; typ; data = Ext (Unbox e); }
+  | _ -> e
 
-let rec conv_expr ctx { loc; typ; data; } = match data with
-  | Const c -> { loc; typ; data = Const c; }
-  | Var id -> mk_exp_var_lookup ~loc ctx id
-  | Error -> mk_exp_error ~loc ()
-  | Ext (M.Tag e0) -> { loc; typ; data = Ext (Tag (conv_expr ctx e0)) }
-  | Let (rf, id, _, e1, e2) -> mk_exp_let ~loc ctx conv_let_expr rf id e1 e2
+type expected_type =
+  | Nothing
+  | Boxed
+  | Unboxed
+
+let box_unbox_type tt t = match tt with
+  | Nothing -> t
+  | Boxed -> snd (EmlType.box_type t)
+  | Unboxed -> snd (EmlType.unbox_type t)
+
+let box_unbox_scheme tt ts = match tt with
+  | Nothing -> ts
+  | Boxed -> snd (EmlType.box_scheme ts)
+  | Unboxed -> snd (EmlType.unbox_scheme ts)
+
+let box_unbox_expr tt e = match tt with
+  | Nothing -> e
+  | Boxed -> box_expr e
+  | Unboxed -> unbox_expr e
+
+let rec conv_expr tt ctx e = match e.data with
+  | Const c -> box_unbox_expr tt { e with data = Const c }
+  | Var id ->
+    let typ = (*try EmlType.instantiate (List.assoc id ctx)
+                with Not_found -> e.typ*)
+      EmlType.instantiate (EmlType.lookup ~loc:e.loc id ctx) in
+    box_unbox_expr tt { e with data = Var id; typ }
+  | Error -> (* box/unbox is not needed since Error has forall 'a. 'a. *)
+    { e with data = Error; typ = box_unbox_type tt e.typ; }
+  | Ext (M.Tag e0) ->
+    box_unbox_expr tt { e with data = Ext (Tag (conv_expr Nothing ctx e0)) }
+  | Let (rf, id, ts, e1, e2) ->
+    let (ts', e1') = conv_let_rhs ctx rf id ts e1 in
+    let e2' = conv_expr tt ((id, ts') :: ctx) e2 in
+    { e with data = Let (rf, id, ts', e1', e2'); typ = e2'.typ }
   (* Constructors: all arguments are boxed. *)
-  | Constr (id, el) -> List.map (conv_box_expr ctx) el
-                       |> mk_exp_constr_lookup ~loc ctx id
+  | Constr (id, el) ->
+    { e with data = Constr (id, List.map (conv_expr Boxed ctx) el) }
   (* Projection: obtained elements are boxed. *)
   | Ext (M.Proj (e0, i)) ->
-    let e0' = conv_expr ctx e0 in
-    { loc; typ = box_type typ; data = Ext (Proj (e0', i)) }
+    let e0' = conv_expr Nothing ctx e0 in
+    let (_, typ) = EmlType.box_type e.typ in
+    { e with typ; data = Ext (Proj (e0', i)) }
+    |> box_unbox_expr tt
   (* Tuples: elements of tuples are boxed. *)
-  | Tuple el -> mk_exp_tuple ~loc (List.map (conv_box_expr ctx) el)
-  (* EmlOperators: all arguments and a return value are unboxed. *)
-  | EmlOp op -> { loc; typ = EmlOption.default typ (unbox_type typ);
-               data = EmlOp (EmlOp.map (conv_unbox_expr ctx) op); }
+  | Tuple el -> mk_exp_tuple ~loc:e.loc (List.map (conv_expr Boxed ctx) el)
+  (* Operators: all arguments and a return value are unboxed. *)
+  | Op op ->
+    let op' = EmlOp.map (conv_expr Unboxed ctx) op in
+    box_unbox_expr tt (mk_exp_op ~loc:e.loc op')
   (* If: the 1st argument is unboxed, others are boxed. *)
-  | If (e1, e2, e3) -> mk_exp_if ~loc (conv_unbox_expr ctx e1)
-                         (conv_box_expr ctx e2) (conv_box_expr ctx e3)
+  | If (e1, e2, e3) ->
+    mk_exp_if ~loc:e.loc (conv_expr Unboxed ctx e1)
+      (conv_expr Boxed ctx e2) (conv_expr Boxed ctx e3)
+    |> box_unbox_expr tt
   (* Functions: all arguments and return values of functions are boxed. *)
   | Abs (args, e0) ->
-    let t_args = match EmlType.unarrow typ with
+    let t_args = match EmlType.unarrow e.typ with
       | None -> assert false
-      | Some (t_args, _) -> t_args in
-    let arg_types = List.map box_type t_args in
-    mk_exp_abs ~arg_types ~loc ctx conv_box_expr args e0
+      | Some (t_args, _) -> List.map (EmlType.box_type >> snd) t_args in
+    let ctx' = List.fold_left2 (fun acc t -> function
+        | Some x -> (x, EmlType.scheme t) :: acc
+        | None -> acc) ctx t_args args in
+    let e0' = conv_expr Boxed ctx' e0 in
+    let t_fun = EmlType.Arrow (t_args, e0'.typ) in
+    { loc = e.loc; typ = t_fun; data = Abs (args, e0'); }
   | App (e0, el) ->
-    let e0' = conv_box_expr ctx e0 in
-    let el' = List.map (conv_box_expr ctx) el in
-    mk_exp_app ~loc e0' el'
+    let e0' = conv_expr Boxed ctx e0 in
+    let el' = List.map (conv_expr Boxed ctx) el in
+    box_unbox_expr tt (mk_exp_app ~loc:e.loc e0' el')
 
-and conv_box_expr ctx e = e |> conv_expr ctx |> box_expr
-and conv_unbox_expr ctx e = e |> conv_expr ctx |> unbox_expr
-and conv_let_expr ctx = conv_expr ctx >> box_expr
+and conv_let_rhs ctx rf id ts e =
+  let ts' = box_unbox_scheme Boxed ts in
+  let ctx' = if rf then (id, ts') :: ctx else ctx in
+  let e' = conv_expr Boxed ctx' e in
+  (ts', e')
 
-let conv_constr (tag, id, args) = (tag, id, List.map box_type args)
+let conv_constr (tag, id, args) =
+  (tag, id, List.map (EmlType.box_type >> snd) args)
 
 let convert ctx tops =
   let f_vtype _ ctx name args constrs =
@@ -100,8 +127,8 @@ let convert ctx tops =
     let ctx' = List.rev_map2 (fun (_, id, _) ts -> (id, ts)) constrs' tss in
     (ctx' @ ctx, Top_variant_type (name, args, constrs'))
   in
-  let f_let loc ctx rf id _ e =
-    let (ts, e') = mk_exp_let_rhs ~loc ctx conv_let_expr rf id e in
-    ((id, ts) :: ctx, Top_let (rf, id, ts, e'))
+  let f_let _ ctx rf id ts e =
+    let (ts', e') = conv_let_rhs ctx rf id ts e in
+    ((id, ts') :: ctx, Top_let (rf, id, ts', e'))
   in
   snd (fold_map f_vtype f_let ctx tops)

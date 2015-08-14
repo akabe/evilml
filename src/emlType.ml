@@ -32,7 +32,7 @@ type t =
   | Var of string option * type_var
   | Ref of t ref (* for destructive unification *)
 
-(** {2 EmlTypes} *)
+(** {2 Types} *)
 
 let genvar =
   let c = ref 0 in
@@ -59,6 +59,20 @@ let is_basetype t = match observe t with
 let unarrow t = match observe t with
   | Arrow (args, ret) -> Some (args, ret)
   | _ -> None
+
+let box_type t =
+  let rec conv t = match observe t with
+    | Bool | Char | Int | Float -> Tconstr ("__ml_boxed", [t])
+    | Arrow (args, ret) -> Arrow (List.map conv args, conv ret)
+    | Tconstr (name, tl) when name <> "__ml_boxed" ->
+      Tconstr (name, List.map conv tl)
+    | _ -> t
+  in
+  (is_basetype t, conv t)
+
+let unbox_type t = match observe t with
+  | Tconstr ("__ml_boxed", [t']) -> (true, t')
+  | _ -> (false, t)
 
 let get_var_name =
   let tbl = ref [] in
@@ -142,7 +156,7 @@ let unify ~loc t0 u0 =
   in
   aux t0 u0
 
-(** {2 EmlType scheme} *)
+(** {2 Type scheme} *)
 
 module VarsSet = Set.Make(struct
     type t = type_var
@@ -154,6 +168,14 @@ type scheme = VarsSet.t * t
 type context = (string * scheme) list
 
 let scheme t = (VarsSet.empty, t)
+
+let box_scheme (vars, t) =
+  let (need, t') = box_type t in
+  (need, (vars, t'))
+
+let unbox_scheme (vars, t) =
+  let (need, t') = unbox_type t in
+  (need, (vars, t'))
 
 let free_vars_in_type =
   let rec aux acc t = match observe t with
@@ -195,7 +217,7 @@ let subst_vars vars t0 =
 let generalize ctx t =
   let bound_vars = free_vars_in_context ctx in
   let free_vars = free_vars_in_type t in
-  (VarsSet.diff free_vars bound_vars, t)
+  subst_vars (VarsSet.diff free_vars bound_vars) t
 
 let instantiate (vars, t) = subst_vars vars t |> snd
 
@@ -205,7 +227,7 @@ let pp_scheme ppf (vars, t) =
   | l -> fprintf ppf "@[forall @[%a@].@;<1 2>@[%a@]@]"
            (pp_list_comma pp_var) l pp t
 
-(** {2 EmlTyping contexts} *)
+(** {2 Typing contexts} *)
 
 let lookup ~loc s ctx =
   try List.assoc s ctx

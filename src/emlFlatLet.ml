@@ -32,7 +32,7 @@ and expr_desc =
   | Const of EmlSyntax.const
   | Var of string
   | If of expr * expr * expr
-  | EmlOp of expr EmlOp.t
+  | Op of expr EmlOp.t
   | Tuple of expr list
   | Constr of string * expr list
   | App of expr * expr list
@@ -57,9 +57,9 @@ let rec conv_expr rev_lets { E.data; E.typ; _ } = match data with
   | E.Error -> (rev_lets, { typ; data = Error })
   | E.Const c -> (rev_lets, { typ; data = Const c })
   | E.Var id -> (rev_lets, { typ; data = Var id })
-  | E.EmlOp op ->
+  | E.Op op ->
     let (rev_lets', op') = EmlOp.fold_map conv_expr rev_lets op in
-    (rev_lets', { typ; data = EmlOp op' })
+    (rev_lets', { typ; data = Op op' })
   | E.Ext (B.Box e1) ->
     let (rev_lets', e1') = conv_expr rev_lets e1 in
     (rev_lets', { typ; data = Box e1'; })

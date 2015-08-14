@@ -50,7 +50,7 @@ let rec conv_expr e = match e.data with
   | Ext (Tag e0) -> { e with data = Ext (Tag (conv_expr e0)) }
   | Ext (Proj (e0, i)) -> { e with data = Ext (Proj (conv_expr e0, i)) }
   | Tuple el -> { e with data = Tuple (List.map conv_expr el) }
-  | EmlOp op -> { e with data = EmlOp (EmlOp.map conv_expr op) }
+  | Op op -> { e with data = Op (EmlOp.map conv_expr op) }
   | Abs (args, e0) -> { e with data = Abs (args, conv_expr e0) }
   | App (e0, el) ->
     { e with data = App (conv_expr e0, List.map conv_expr el) }

@@ -53,7 +53,7 @@ let rec conv_expr e = match e.data with
   | Ext (Proj (e0, i)) -> { e with data = Ext (Proj (conv_expr e0, i)) }
   | Constr (id, el) -> { e with data = Constr (id, List.map conv_expr el) }
   | Tuple el -> { e with data = Tuple (List.map conv_expr el) }
-  | EmlOp op -> { e with data = EmlOp (EmlOp.map conv_expr op) }
+  | Op op -> { e with data = Op (EmlOp.map conv_expr op) }
   | If (e1, e2, e3) ->
     { e with data = If (conv_expr e1, conv_expr e2, conv_expr e3) }
   | Abs (args, e0) -> { e with data = Abs (args, conv_expr e0) }

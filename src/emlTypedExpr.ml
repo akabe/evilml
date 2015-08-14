@@ -21,7 +21,7 @@ and 'a expr_desc =
   | Constr of string * 'a base_expr list
   | Tuple of 'a base_expr list
   | If of 'a base_expr * 'a base_expr * 'a base_expr
-  | EmlOp of 'a base_expr EmlOp.t
+  | Op of 'a base_expr EmlOp.t
   | App of 'a base_expr * 'a base_expr list
   | Abs of string option list * 'a base_expr
   | Let of bool * string * EmlType.scheme * 'a base_expr * 'a base_expr
@@ -59,6 +59,42 @@ let mk_exp_constr_lookup ~loc ctx id el =
 let mk_exp_tuple ~loc el =
   let tl = List.map (fun ei -> ei.typ) el in
   { loc; typ = EmlType.Tuple tl; data = Tuple el; }
+
+let mk_exp_op ~loc op =
+  let typ = match op with
+    (* comparison operators (polymorphic) *)
+    | EmlOp.Eq (e1, e2) | EmlOp.Ne (e1, e2) | EmlOp.Gt (e1, e2)
+    | EmlOp.Lt (e1, e2) | EmlOp.Ge (e1, e2) | EmlOp.Le (e1, e2) ->
+      EmlType.unify ~loc e1.typ e2.typ;
+      EmlType.Bool
+    (* boolean operators *)
+    | EmlOp.Not e1 ->
+      EmlType.unify ~loc e1.typ EmlType.Bool;
+      EmlType.Bool
+    | EmlOp.And (e1, e2) | EmlOp.Or (e1, e2) ->
+      EmlType.unify ~loc e1.typ EmlType.Bool;
+      EmlType.unify ~loc e2.typ EmlType.Bool;
+      EmlType.Bool
+    (* integer operators *)
+    | EmlOp.Pos e1 | EmlOp.Neg e1 ->
+      EmlType.unify ~loc e1.typ EmlType.Int;
+      EmlType.Int
+    | EmlOp.Add (e1, e2) | EmlOp.Sub (e1, e2) | EmlOp.Mul (e1, e2)
+    | EmlOp.Div (e1, e2) | EmlOp.Mod (e1, e2) ->
+      EmlType.unify ~loc e1.typ EmlType.Int;
+      EmlType.unify ~loc e2.typ EmlType.Int;
+      EmlType.Int
+    (* floating-point-value operators *)
+    | EmlOp.FPos e1 | EmlOp.FNeg e1 ->
+      EmlType.unify ~loc e1.typ EmlType.Float;
+      EmlType.Int
+    | EmlOp.FAdd (e1, e2) | EmlOp.FSub (e1, e2) | EmlOp.FMul (e1, e2)
+    | EmlOp.FDiv (e1, e2) ->
+      EmlType.unify ~loc e1.typ EmlType.Float;
+      EmlType.unify ~loc e2.typ EmlType.Float;
+      EmlType.Float
+  in
+  { loc; typ; data = Op op; }
 
 let mk_exp_if ~loc e1 e2 e3 =
   EmlType.unify ~loc e1.typ EmlType.Bool;

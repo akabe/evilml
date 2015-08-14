@@ -32,7 +32,7 @@ and expr_desc =
   | Error
   | Const of EmlSyntax.const
   | Var of string
-  | EmlOp of expr EmlOp.t
+  | Op of expr EmlOp.t
   | App of expr * type_expr list
   | Tmember of template_flag * expr * string
   | Vmember of expr * string
@@ -66,7 +66,7 @@ let mk_type_expr e : type_expr = match e.data with
 
 let mk_exp_const c = { dep = false; data = Const c; }
 let mk_exp_var ?(deps = []) id = { dep = List.mem id deps; data = Var id; }
-let mk_exp_op op = { dep = EmlOp.exists (fun ei -> ei.dep) op; data = EmlOp op; }
+let mk_exp_op op = { dep = EmlOp.exists (fun ei -> ei.dep) op; data = Op op; }
 let mk_exp_vmem e mem = { dep = e.dep; data = Vmember (e, mem); }
 let mk_exp_tmem ?(deps = []) ?(template = false) e mem =
   let flag = template && not (List.is_empty deps) in
@@ -107,7 +107,7 @@ let rec conv_expr deps { F.data; _ } = match data with
          (mk_exp_var "__ml_if")
          [conv_expr deps e1; conv_expr deps e2; conv_expr deps e3])
       member_ret
-  | F.EmlOp op -> conv_op deps op
+  | F.Op op -> conv_op deps op
   | F.Tuple el -> mk_exp_tuple (List.map (conv_expr deps) el)
   | F.Constr (id, []) -> mk_exp_var (get_constr_name id)
   | F.Constr (id, el) ->
@@ -221,26 +221,26 @@ let rec pp_expr ppf e = match e.data with
     fprintf ppf "%a::@;<0 2>%s%s"
       pp_expr e0 (if b then "template " else "") field
   | Vmember (e0, field) -> fprintf ppf "%a::@;<0 2>%s" pp_expr e0 field
-  | EmlOp (EmlOp.Not e1) -> fprintf ppf "!@[%a@]" pp_expr e1
-  | EmlOp (EmlOp.And (e1, e2)) -> fprintf ppf "(@[%a@ && %a@])" pp_expr e1 pp_expr e2
-  | EmlOp (EmlOp.Or (e1, e2)) -> fprintf ppf "(@[%a@ || %a@])" pp_expr e1 pp_expr e2
-  | EmlOp (EmlOp.Pos e1) | EmlOp (EmlOp.FPos e1) -> fprintf ppf "+@[%a@]" pp_expr e1
-  | EmlOp (EmlOp.Neg e1) | EmlOp (EmlOp.FNeg e1) -> fprintf ppf "-@[%a@]" pp_expr e1
-  | EmlOp (EmlOp.Add (e1, e2)) | EmlOp (EmlOp.FAdd (e1, e2)) ->
+  | Op (EmlOp.Not e1) -> fprintf ppf "!@[%a@]" pp_expr e1
+  | Op (EmlOp.And(e1,e2)) -> fprintf ppf "(@[%a@ && %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Or (e1,e2)) -> fprintf ppf "(@[%a@ || %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Pos e1) | Op (EmlOp.FPos e1) -> fprintf ppf "+@[%a@]" pp_expr e1
+  | Op (EmlOp.Neg e1) | Op (EmlOp.FNeg e1) -> fprintf ppf "-@[%a@]" pp_expr e1
+  | Op (EmlOp.Add (e1, e2)) | Op (EmlOp.FAdd (e1, e2)) ->
     fprintf ppf "(@[%a@ + %a@])" pp_expr e1 pp_expr e2
-  | EmlOp (EmlOp.Sub (e1, e2)) | EmlOp (EmlOp.FSub (e1, e2)) ->
+  | Op (EmlOp.Sub (e1, e2)) | Op (EmlOp.FSub (e1, e2)) ->
     fprintf ppf "(@[%a@ - %a@])" pp_expr e1 pp_expr e2
-  | EmlOp (EmlOp.Mul (e1, e2)) | EmlOp (EmlOp.FMul (e1, e2)) ->
+  | Op (EmlOp.Mul (e1, e2)) | Op (EmlOp.FMul (e1, e2)) ->
     fprintf ppf "(@[%a@ * %a@])" pp_expr e1 pp_expr e2
-  | EmlOp (EmlOp.Div (e1, e2)) | EmlOp (EmlOp.FDiv (e1, e2)) ->
+  | Op (EmlOp.Div (e1, e2)) | Op (EmlOp.FDiv (e1, e2)) ->
     fprintf ppf "(@[%a@ / %a@])" pp_expr e1 pp_expr e2
-  | EmlOp (EmlOp.Mod (e1, e2)) -> fprintf ppf "(@[%a@ %% %a@])" pp_expr e1 pp_expr e2
-  | EmlOp (EmlOp.Eq (e1, e2)) -> fprintf ppf "(@[%a@ == %a@])" pp_expr e1 pp_expr e2
-  | EmlOp (EmlOp.Ne (e1, e2)) -> fprintf ppf "(@[%a@ != %a@])" pp_expr e1 pp_expr e2
-  | EmlOp (EmlOp.Lt (e1, e2)) -> fprintf ppf "(@[%a@ < %a@])" pp_expr e1 pp_expr e2
-  | EmlOp (EmlOp.Gt (e1, e2)) -> fprintf ppf "(@[%a@ > %a@])" pp_expr e1 pp_expr e2
-  | EmlOp (EmlOp.Le (e1, e2)) -> fprintf ppf "(@[%a@ <= %a@])" pp_expr e1 pp_expr e2
-  | EmlOp (EmlOp.Ge (e1, e2)) -> fprintf ppf "(@[%a@ >= %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Mod(e1,e2)) -> fprintf ppf "(@[%a@ %% %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Eq(e1,e2)) -> fprintf ppf "(@[%a@ == %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Ne(e1,e2)) -> fprintf ppf "(@[%a@ != %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Lt(e1,e2)) -> fprintf ppf "(@[%a@ < %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Gt(e1,e2)) -> fprintf ppf "(@[%a@ > %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Le(e1,e2)) -> fprintf ppf "(@[%a@ <= %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Ge(e1,e2)) -> fprintf ppf "(@[%a@ >= %a@])" pp_expr e1 pp_expr e2
   | App (e0, el) ->
     let sp = match List.last el with
       | (_, { data = App _; _ }) -> " "

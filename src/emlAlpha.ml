@@ -45,7 +45,7 @@ let genid seen s =
   let s' = if StringSet.mem s seen then aux 1 else s in
   (StringSet.add s' seen, s')
 
-let rename_args tbl = List.map (EmlOption.map (fun x -> List.assoc x tbl))
+let rename_args tbl = List.map (Option.map (fun x -> List.assoc x tbl))
 
 let rec conv_expr tbl seen e = match e.data with
   | Const _ | Error -> (seen, e)
@@ -68,9 +68,9 @@ let rec conv_expr tbl seen e = match e.data with
   | Tuple el ->
     let (seen', el') = List.fold_map (conv_expr tbl) seen el in
     (seen', { e with data = Tuple el' })
-  | EmlOp op ->
+  | Op op ->
     let (seen', op') = EmlOp.fold_map (conv_expr tbl) seen op in
-    (seen', { e with data = EmlOp op' })
+    (seen', { e with data = Op op' })
   | If (e1, e2, e3) ->
     let (seen', e1') = conv_expr tbl seen e1 in
     let (seen', e2') = conv_expr tbl seen' e2 in
