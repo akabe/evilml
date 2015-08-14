@@ -622,6 +622,6 @@ let _ =
     (fun hook ->
        dispatch_default hook;
        Ocamlbuild_js_of_ocaml.dispatcher
-         ~oasis_executables:["src/evilml.byte"]
+         ~oasis_executables:["src/evilmlJS.byte"]
          hook)
 ;;

@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 90eb3337199cba914595299f757b2958)
+# DO NOT EDIT (digest: f8589e21b018f5bdc5243b3586b27f75)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -14,13 +14,15 @@ true: annot, bin_annot
 ".git": not_hygienic
 "_darcs": -traverse
 "_darcs": not_hygienic
-# Executable evilml_js
-"src/evilml.byte": package(js_of_ocaml)
-"src/evilml.byte": package(ppx_deriving.show)
+# Executable evilml
+<src/evilml.{native,byte}>: package(ppx_deriving.show)
+# Executable evilmlJS
+"src/evilmlJS.byte": package(js_of_ocaml)
+"src/evilmlJS.byte": package(ppx_deriving.show)
 <src/*.ml{,i,y}>: package(js_of_ocaml)
 <src/*.ml{,i,y}>: package(ppx_deriving.show)
 # OASIS_STOP
 
 true: -traverse
 <**/*.ml{,i}>: debug, warn(A-4-33-41-42-43-34-44), strict_sequence, safe_string
-<src/evilml.ml>: debug, package(js_of_ocaml.syntax)
+<src/evilmlJS.ml>: debug, package(js_of_ocaml.syntax)

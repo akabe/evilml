@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: c65aa05ca192939ac346a4dc1377c319) *)
+(* DO NOT EDIT (digest: 5d6a69323ddee2ab8701783d49f4bbf3) *)
 
 This is the INSTALL file for the EvilML distribution.
 
@@ -14,7 +14,7 @@ In order to compile this package, you will need:
 * ocaml (>= 4.02)
 * findlib
 * ppx_deriving
-* js_of_ocaml
+* js_of_ocaml for executable evilmlJS
 
 Installing
 ==========
