@@ -1,6 +1,6 @@
 {
-open Parser
-open Utils
+open EmlParser
+open EmlUtils
 
 let code_buf = Buffer.create 16
 
@@ -42,7 +42,7 @@ let make_ident lexbuf =
     Hashtbl.find keyword_table s
   with Not_found ->
     if String.has_prefix "__ml_" s
-    then errorf ~loc:(Location.from_lexbuf lexbuf)
+    then errorf ~loc:(EmlLocation.from_lexbuf lexbuf)
         "Prefix `__ml_' is reserved: %s" s ()
     else if 'A' <= s.[0] && s.[0] <= 'Z' then UIDENT s else LIDENT s
 
@@ -107,7 +107,7 @@ rule main = parse
 | str_literal    { VSTRING (get_quoted lexbuf) }
 | identifier     { make_ident lexbuf }
 | eof            { EOF }
-| _              { errorf ~loc:(Location.from_lexbuf lexbuf)
+| _              { errorf ~loc:(EmlLocation.from_lexbuf lexbuf)
                      "Unknown token: %s" (Lexing.lexeme lexbuf) () }
 
 and comment = parse

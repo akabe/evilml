@@ -16,9 +16,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 open Format
-open Utils
-open TypedExpr
-open RemoveMatch
+open EmlUtils
+open EmlTypedExpr
+open EmlRemoveMatch
 
 let fresh_then_name = gen_fresh_name "__ml_then"
 let fresh_else_name = gen_fresh_name "__ml_else"
@@ -30,7 +30,7 @@ let let_wrap id e =
 
 (** [lazy_wrap id e] wraps expression [e] as [let id = e in id]. *)
 let lazy_wrap id e =
-  let e_abs = { loc = e.loc; typ = Type.Arrow ([Type.Unit], e.typ);
+  let e_abs = { loc = e.loc; typ = EmlType.Arrow ([EmlType.Unit], e.typ);
                 data = Abs ([None], e); } in
   let_wrap id e_abs
 
@@ -50,7 +50,7 @@ let rec conv_expr e = match e.data with
   | Ext (Tag e0) -> { e with data = Ext (Tag (conv_expr e0)) }
   | Ext (Proj (e0, i)) -> { e with data = Ext (Proj (conv_expr e0, i)) }
   | Tuple el -> { e with data = Tuple (List.map conv_expr el) }
-  | Op op -> { e with data = Op (Op.map conv_expr op) }
+  | EmlOp op -> { e with data = EmlOp (EmlOp.map conv_expr op) }
   | Abs (args, e0) -> { e with data = Abs (args, conv_expr e0) }
   | App (e0, el) ->
     { e with data = App (conv_expr e0, List.map conv_expr el) }
@@ -71,7 +71,7 @@ let rec conv_expr tbl e = match e.data with
   | Ext (Tag e0) -> { e with data = Ext (Tag (conv_expr tbl e0)) }
   | Ext (Proj (e0, i)) -> { e with data = Ext (Proj (conv_expr tbl e0, i)) }
   | Tuple el -> { e with data = Tuple (List.map (conv_expr tbl) el) }
-  | Op op -> { e with data = Op (Op.map (conv_expr tbl) op) }
+  | EmlOp op -> { e with data = EmlOp (EmlOp.map (conv_expr tbl) op) }
   | Abs (args, e0) -> { e with data = Abs (args, conv_expr tbl e0) }
   | App (e0, el) ->
     { e with data = App (conv_expr tbl e0,
@@ -90,7 +90,7 @@ let rec conv_expr tbl e = match e.data with
 and conv_let_rec_rhs tbl id1 e1 =
   let cnt = "__cnt" in
   let id2 = "__rec_" ^ id1 in
-  let t_fun = Type.Arrow ([Type.Int], e1.typ) in
+  let t_fun = EmlType.Arrow ([EmlType.Int], e1.typ) in
   let e_id2 = mk_exp_var ~loc:e1.loc id2 t_fun in
   let e1' = conv_let_rec_subst tbl id1 e_id2 cnt e1 in
   let e_abs = { loc = e1.loc; typ = t_fun;
@@ -103,9 +103,9 @@ and conv_let_rec_rhs tbl id1 e1 =
     expression [e] with [id2 (cnt + 1)]. *)
 and conv_let_rec_subst tbl id1 id2 cnt e =
   let mk_subst ~loc = (* Generate expr [id2 (cnt + 1)] *)
-    let e_vcnt = mk_exp_var ~loc cnt Type.Int in
+    let e_vcnt = mk_exp_var ~loc cnt EmlType.Int in
     let e_1 = mk_exp_int ~loc 1 in
-    let e_sub = { loc; typ = Type.Int; data = Op (Op.Add (e_vcnt, e_1)); } in
+    let e_sub = { loc; typ = EmlType.Int; data = EmlOp (EmlOp.Add (e_vcnt, e_1)); } in
     mk_exp_app ~loc { id2 with loc } [e_sub]
   in
   let tbl' = (id1, mk_subst) :: tbl in

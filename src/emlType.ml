@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open Utils
+open EmlUtils
 open Format
 
 type type_var = int
@@ -32,7 +32,7 @@ type t =
   | Var of string option * type_var
   | Ref of t ref (* for destructive unification *)
 
-(** {2 Types} *)
+(** {2 EmlTypes} *)
 
 let genvar =
   let c = ref 0 in
@@ -111,7 +111,7 @@ let rec occurs_check x t = match observe t with
 let rec bind = function
   | Ref { contents = (Ref _ as t) } -> bind t
   | Ref ({ contents = Var _ } as r) -> fun t -> r := t
-  | _ -> failwith "Type.bind"
+  | _ -> failwith "EmlType.bind"
 
 let unify ~loc t0 u0 =
   let rec aux t u = match observe t, observe u with
@@ -137,12 +137,12 @@ let unify ~loc t0 u0 =
     | Arrow _, Arrow ([], ur) -> aux t ur
     | _ -> errorf ~loc "This expression has type %a\n\
                         but an expression was expected of type %a\n\
-                        Type %a is not compatible with %a"
+                        EmlType %a is not compatible with %a"
              pp t0 pp u0 pp t pp u ()
   in
   aux t0 u0
 
-(** {2 Type scheme} *)
+(** {2 EmlType scheme} *)
 
 module VarsSet = Set.Make(struct
     type t = type_var
@@ -205,7 +205,7 @@ let pp_scheme ppf (vars, t) =
   | l -> fprintf ppf "@[forall @[%a@].@;<1 2>@[%a@]@]"
            (pp_list_comma pp_var) l pp t
 
-(** {2 Typing contexts} *)
+(** {2 EmlTyping contexts} *)
 
 let lookup ~loc s ctx =
   try List.assoc s ctx

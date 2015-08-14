@@ -16,10 +16,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 open Format
-open TypedExpr
-open Utils
+open EmlTypedExpr
+open EmlUtils
 
-module M = RemoveMatch
+module M = EmlRemoveMatch
 
 type expr = ext_expr base_expr [@@deriving show]
 and ext_expr =
@@ -30,24 +30,24 @@ and ext_expr =
 
 type top = ext_expr base_top [@@deriving show]
 
-let rec box_type t = match Type.observe t with
-  | Type.Bool | Type.Char | Type.Int | Type.Float ->
-    Type.Tconstr ("__ml_boxed", [t])
-  | Type.Arrow (args, ret) ->
-    Type.Arrow (List.map box_type args, box_type ret)
-  | Type.Tconstr (name, tl) when name <> "__ml_boxed" ->
-    Type.Tconstr (name, List.map box_type tl)
+let rec box_type t = match EmlType.observe t with
+  | EmlType.Bool | EmlType.Char | EmlType.Int | EmlType.Float ->
+    EmlType.Tconstr ("__ml_boxed", [t])
+  | EmlType.Arrow (args, ret) ->
+    EmlType.Arrow (List.map box_type args, box_type ret)
+  | EmlType.Tconstr (name, tl) when name <> "__ml_boxed" ->
+    EmlType.Tconstr (name, List.map box_type tl)
   | _ -> t
 
-let unbox_type t = match Type.observe t with
-  | Type.Tconstr ("__ml_boxed", [t']) -> Some t'
+let unbox_type t = match EmlType.observe t with
+  | EmlType.Tconstr ("__ml_boxed", [t']) -> Some t'
   | _ -> None
 
 (** Insert boxing if a given expression has a base type. *)
 let box_expr e =
   { loc = e.loc;
     typ = box_type e.typ;
-    data = if Type.is_basetype e.typ then Ext (Box e) else e.data; }
+    data = if EmlType.is_basetype e.typ then Ext (Box e) else e.data; }
 
 (** Insert unboxing if a given expression has a boxed type. *)
 let unbox_expr e = match unbox_type e.typ with
@@ -69,15 +69,15 @@ let rec conv_expr ctx { loc; typ; data; } = match data with
     { loc; typ = box_type typ; data = Ext (Proj (e0', i)) }
   (* Tuples: elements of tuples are boxed. *)
   | Tuple el -> mk_exp_tuple ~loc (List.map (conv_box_expr ctx) el)
-  (* Operators: all arguments and a return value are unboxed. *)
-  | Op op -> { loc; typ = Option.default typ (unbox_type typ);
-               data = Op (Op.map (conv_unbox_expr ctx) op); }
+  (* EmlOperators: all arguments and a return value are unboxed. *)
+  | EmlOp op -> { loc; typ = EmlOption.default typ (unbox_type typ);
+               data = EmlOp (EmlOp.map (conv_unbox_expr ctx) op); }
   (* If: the 1st argument is unboxed, others are boxed. *)
   | If (e1, e2, e3) -> mk_exp_if ~loc (conv_unbox_expr ctx e1)
                          (conv_box_expr ctx e2) (conv_box_expr ctx e3)
   (* Functions: all arguments and return values of functions are boxed. *)
   | Abs (args, e0) ->
-    let t_args = match Type.unarrow typ with
+    let t_args = match EmlType.unarrow typ with
       | None -> assert false
       | Some (t_args, _) -> t_args in
     let arg_types = List.map box_type t_args in

@@ -14,3 +14,9 @@
 
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
+
+type renamer
+
+val make_renamer : (string * string) list -> EmlBoxing.top list -> renamer
+
+val convert : renamer -> EmlBoxing.top list -> EmlBoxing.top list

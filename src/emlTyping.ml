@@ -16,11 +16,11 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 open Format
-open TypedExpr
-open Utils
+open EmlTypedExpr
+open EmlUtils
 
-module L = Location
-module S = Syntax
+module L = EmlLocation
+module S = EmlSyntax
 
 type pattern = pattern_desc typed [@@deriving show]
 and pattern_desc =
@@ -32,46 +32,46 @@ and pattern_desc =
 type expr = ext_expr base_expr
 and ext_expr =
   | Match of expr * (pattern * expr) list
-  | Constraint of expr * Type.t
+  | Constraint of expr * EmlType.t
                     [@@deriving show]
 
-type top = ext_expr TypedExpr.base_top [@@deriving show]
+type top = ext_expr EmlTypedExpr.base_top [@@deriving show]
 
 let mk_exp_op ~loc op =
   let typ = match op with
     (* comparison operators (polymorphic) *)
-    | Op.Eq (e1, e2) | Op.Ne (e1, e2) | Op.Gt (e1, e2) | Op.Lt (e1, e2)
-    | Op.Ge (e1, e2) | Op.Le (e1, e2) ->
-      Type.unify ~loc e1.typ e2.typ;
-      Type.Bool
+    | EmlOp.Eq (e1, e2) | EmlOp.Ne (e1, e2) | EmlOp.Gt (e1, e2) | EmlOp.Lt (e1, e2)
+    | EmlOp.Ge (e1, e2) | EmlOp.Le (e1, e2) ->
+      EmlType.unify ~loc e1.typ e2.typ;
+      EmlType.Bool
     (* boolean operators *)
-    | Op.Not e1 ->
-      Type.unify ~loc e1.typ Type.Bool;
-      Type.Bool
-    | Op.And (e1, e2) | Op.Or (e1, e2) ->
-      Type.unify ~loc e1.typ Type.Bool;
-      Type.unify ~loc e2.typ Type.Bool;
-      Type.Bool
+    | EmlOp.Not e1 ->
+      EmlType.unify ~loc e1.typ EmlType.Bool;
+      EmlType.Bool
+    | EmlOp.And (e1, e2) | EmlOp.Or (e1, e2) ->
+      EmlType.unify ~loc e1.typ EmlType.Bool;
+      EmlType.unify ~loc e2.typ EmlType.Bool;
+      EmlType.Bool
     (* integer operators *)
-    | Op.Pos e1 | Op.Neg e1 ->
-      Type.unify ~loc e1.typ Type.Int;
-      Type.Int
-    | Op.Add (e1, e2) | Op.Sub (e1, e2) | Op.Mul (e1, e2) | Op.Div (e1, e2)
-    | Op.Mod (e1, e2) ->
-      Type.unify ~loc e1.typ Type.Int;
-      Type.unify ~loc e2.typ Type.Int;
-      Type.Int
+    | EmlOp.Pos e1 | EmlOp.Neg e1 ->
+      EmlType.unify ~loc e1.typ EmlType.Int;
+      EmlType.Int
+    | EmlOp.Add (e1, e2) | EmlOp.Sub (e1, e2) | EmlOp.Mul (e1, e2) | EmlOp.Div (e1, e2)
+    | EmlOp.Mod (e1, e2) ->
+      EmlType.unify ~loc e1.typ EmlType.Int;
+      EmlType.unify ~loc e2.typ EmlType.Int;
+      EmlType.Int
     (* floating-point-value operators *)
-    | Op.FPos e1 | Op.FNeg e1 ->
-      Type.unify ~loc e1.typ Type.Float;
-      Type.Int
-    | Op.FAdd (e1, e2) | Op.FSub (e1, e2) | Op.FMul (e1, e2)
-    | Op.FDiv (e1, e2) ->
-      Type.unify ~loc e1.typ Type.Float;
-      Type.unify ~loc e2.typ Type.Float;
-      Type.Float
+    | EmlOp.FPos e1 | EmlOp.FNeg e1 ->
+      EmlType.unify ~loc e1.typ EmlType.Float;
+      EmlType.Int
+    | EmlOp.FAdd (e1, e2) | EmlOp.FSub (e1, e2) | EmlOp.FMul (e1, e2)
+    | EmlOp.FDiv (e1, e2) ->
+      EmlType.unify ~loc e1.typ EmlType.Float;
+      EmlType.unify ~loc e2.typ EmlType.Float;
+      EmlType.Float
   in
-  { loc; typ; data = Op op; }
+  { loc; typ; data = EmlOp op; }
 
 let rec typing_expr ctx { L.loc; L.data } = match data with
   | S.Error -> mk_exp_error ~loc ()
@@ -84,7 +84,7 @@ let rec typing_expr ctx { L.loc; L.data } = match data with
   | S.Constr (s, el) -> List.map (typing_expr ctx) el
                         |> mk_exp_constr_lookup ~loc ctx s
   | S.Tuple el -> mk_exp_tuple ~loc (List.map (typing_expr ctx) el)
-  | S.Op op -> mk_exp_op ~loc (Op.map (typing_expr ctx) op)
+  | S.EmlOp op -> mk_exp_op ~loc (EmlOp.map (typing_expr ctx) op)
   | S.If (e1, e2, e3) ->
     mk_exp_if ~loc
       (typing_expr ctx e1) (typing_expr ctx e2) (typing_expr ctx e3)
@@ -94,18 +94,18 @@ let rec typing_expr ctx { L.loc; L.data } = match data with
   | S.Let (rf, id, e1, e2) -> mk_exp_let ~loc ctx typing_expr rf id e1 e2
   | S.Constraint (e, t) ->
     let e' = typing_expr ctx e in
-    Type.unify ~loc e'.typ t;
+    EmlType.unify ~loc e'.typ t;
     { loc; typ = t; data = Ext (Constraint (e', t)); }
   | S.Match (e0, cases) -> typing_match ~loc ctx e0 cases
 
 and typing_match ~loc ctx e0 cases =
   let e0' = typing_expr ctx e0 in
-  let (t_in, t_out) = (e0'.typ, Type.genvar ()) in
+  let (t_in, t_out) = (e0'.typ, EmlType.genvar ()) in
   let typing_case (pi, ei) =
     let (ctx', pi') = typing_pattern ctx pi in
     let ei' = typing_expr ctx' ei in
-    Type.unify ~loc pi'.typ t_in;
-    Type.unify ~loc ei'.typ t_out;
+    EmlType.unify ~loc pi'.typ t_in;
+    EmlType.unify ~loc ei'.typ t_out;
     (pi', ei')
   in
   let cases' = List.map typing_case cases in
@@ -113,28 +113,28 @@ and typing_match ~loc ctx e0 cases =
 
 and typing_pattern ctx { L.loc; L.data } = match data with
   | S.Pconst S.Punit ->
-    (ctx, { loc; typ = Type.Unit; data = Pconst S.Punit; })
+    (ctx, { loc; typ = EmlType.Unit; data = Pconst S.Punit; })
   | S.Pconst (S.Pbool b) ->
-    (ctx, { loc; typ = Type.Unit; data = Pconst (S.Pbool b); })
+    (ctx, { loc; typ = EmlType.Unit; data = Pconst (S.Pbool b); })
   | S.Pconst (S.Pchar c) ->
-    (ctx, { loc; typ = Type.Char; data = Pconst (S.Pchar c); })
+    (ctx, { loc; typ = EmlType.Char; data = Pconst (S.Pchar c); })
   | S.Pconst (S.Pint n) ->
-    (ctx, { loc; typ = Type.Int; data = Pconst (S.Pint n); })
+    (ctx, { loc; typ = EmlType.Int; data = Pconst (S.Pint n); })
   | S.Pvar None ->
-    (ctx, { loc; typ = Type.genvar (); data = Pvar None; })
+    (ctx, { loc; typ = EmlType.genvar (); data = Pvar None; })
   | S.Pvar (Some id) ->
-    let typ = Type.genvar () in
-    ((id, Type.scheme typ) :: ctx, { loc; typ; data = Pvar (Some id); })
+    let typ = EmlType.genvar () in
+    ((id, EmlType.scheme typ) :: ctx, { loc; typ; data = Pvar (Some id); })
   | S.Ptuple pl ->
     let (ctx', pl') = List.fold_map typing_pattern ctx pl in
-    let typ = Type.Tuple (List.map (fun p -> p.typ) pl') in
+    let typ = EmlType.Tuple (List.map (fun p -> p.typ) pl') in
     (ctx', { loc; typ; data = Ptuple pl'; })
   | S.Pconstr (id, pl) ->
     let (ctx', pl') = List.fold_map typing_pattern ctx pl in
-    let t_pat = Type.genvar () in
-    let t_constr = Type.Arrow (List.map (fun p -> p.typ) pl', t_pat) in
-    let ts = Type.lookup ~loc id ctx in
-    Type.unify ~loc t_constr (Type.instantiate ts);
+    let t_pat = EmlType.genvar () in
+    let t_constr = EmlType.Arrow (List.map (fun p -> p.typ) pl', t_pat) in
+    let ts = EmlType.lookup ~loc id ctx in
+    EmlType.unify ~loc t_constr (EmlType.instantiate ts);
     (ctx', { loc; typ = t_pat; data = Pconstr (Hashtbl.hash id, id, pl'); })
 
 let typing ctx =

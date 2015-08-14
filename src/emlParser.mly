@@ -1,8 +1,8 @@
 %{
-open Utils
+open EmlUtils
 open Format
-open Syntax
-open Location
+open EmlSyntax
+open EmlLocation
 
 let check_dup ~loc l =
   match List.duplicated l with
@@ -17,15 +17,15 @@ let mk ?(loc = from_symbol ()) data = { loc; data; }
 
 let mk_exp_unary_plus e =
   match e.data with
-  | Const (Syntax.Int n) -> mk (Const (Syntax.Int n))
-  | Const (Syntax.Float n) -> mk (Const (Syntax.Float n))
-  | _ -> mk (Op (Op.Pos e))
+  | Const (EmlSyntax.Int n) -> mk (Const (EmlSyntax.Int n))
+  | Const (EmlSyntax.Float n) -> mk (Const (EmlSyntax.Float n))
+  | _ -> mk (EmlOp (EmlOp.Pos e))
 
 let mk_exp_unary_minus e =
   match e.data with
-  | Const (Syntax.Int n) -> mk (Const (Syntax.Int (~- n)))
-  | Const (Syntax.Float n) -> mk (Const (Syntax.Float (~-. n)))
-  | _ -> mk (Op (Op.Neg e))
+  | Const (EmlSyntax.Int n) -> mk (Const (EmlSyntax.Int (~- n)))
+  | Const (EmlSyntax.Float n) -> mk (Const (EmlSyntax.Float (~-. n)))
+  | _ -> mk (EmlOp (EmlOp.Neg e))
 
 let mk_exp_cons ?loc e1 e2 = Constr ("::", [e1; e2]) |> mk ?loc
 
@@ -50,28 +50,28 @@ let mk_pat_string ?loc s =
   |> mk_pat_list ?loc
 
 let resolve_scope_tyvars ~loc tbl =
-  let rec aux t = match Type.observe t with
-    | Type.Ref _ -> assert false
-    | Type.Unit | Type.Bool | Type.Char | Type.Int | Type.Float -> t
-    | Type.Var (None, _) -> t
-    | Type.Var (Some s, _) ->
-      if Hashtbl.mem tbl s then Type.Var (Some s, Hashtbl.find tbl s)
+  let rec aux t = match EmlType.observe t with
+    | EmlType.Ref _ -> assert false
+    | EmlType.Unit | EmlType.Bool | EmlType.Char | EmlType.Int | EmlType.Float -> t
+    | EmlType.Var (None, _) -> t
+    | EmlType.Var (Some s, _) ->
+      if Hashtbl.mem tbl s then EmlType.Var (Some s, Hashtbl.find tbl s)
       else errorf ~loc "Unbound type parameter %s" s ()
-    | Type.Arrow (args, ret) -> Type.Arrow (List.map aux args, aux ret)
-    | Type.Tuple tl -> Type.Tuple (List.map aux tl)
-    | Type.Tconstr (s, tl) -> Type.Tconstr (s, List.map aux tl)
+    | EmlType.Arrow (args, ret) -> EmlType.Arrow (List.map aux args, aux ret)
+    | EmlType.Tuple tl -> EmlType.Tuple (List.map aux tl)
+    | EmlType.Tconstr (s, tl) -> EmlType.Tconstr (s, List.map aux tl)
   in
   List.map aux
 
-let mk_type ?(loc = Location.from_symbol ()) name rev_args rev_constrs =
+let mk_type ?(loc = EmlLocation.from_symbol ()) name rev_args rev_constrs =
   check_dup_args ~loc rev_args;
   check_dup ~loc (List.map fst rev_constrs);
   let tbl = Hashtbl.create 4 in
   let args = rev_args
              |> List.rev
-             |> List.map (fun name -> Type.genvar ?name ()) in
-  List.iter (fun t -> match Type.observe t with
-      | Type.Var (Some s, i) -> Hashtbl.add tbl s i
+             |> List.map (fun name -> EmlType.genvar ?name ()) in
+  List.iter (fun t -> match EmlType.observe t with
+      | EmlType.Var (Some s, i) -> Hashtbl.add tbl s i
       | _ -> ()) args;
   let constrs = rev_constrs
                 |> List.rev
@@ -90,13 +90,13 @@ let find_type name =
 (** [check_type ~loc tops t] checks the number of type parameters of type
     constructors in type [t]. *)
 let check_type ~loc tops =
-  let rec aux t = match Type.observe t with
-    | Type.Ref _ -> assert false
-    | Type.Unit | Type.Bool | Type.Char | Type.Int | Type.Float
-    | Type.Var _ -> ()
-    | Type.Arrow (args, ret) -> List.iter aux (ret :: args)
-    | Type.Tuple tl -> List.iter aux tl
-    | Type.Tconstr (name, args) ->
+  let rec aux t = match EmlType.observe t with
+    | EmlType.Ref _ -> assert false
+    | EmlType.Unit | EmlType.Bool | EmlType.Char | EmlType.Int | EmlType.Float
+    | EmlType.Var _ -> ()
+    | EmlType.Arrow (args, ret) -> List.iter aux (ret :: args)
+    | EmlType.Tuple tl -> List.iter aux tl
+    | EmlType.Tconstr (name, args) ->
       match find_type name tops with
       | None -> errorf ~loc "The type constructor %s is not defined" name ()
       | Some (args', _) ->
@@ -114,7 +114,7 @@ let check_top_shadowing tops =
   let aux (types, vars) { loc; data; } = match data with
     | Top_variant_type (s, _, constrs) ->
       (* Check top-level shadowing of types and constructors. *)
-      if List.mem s types then errorf ~loc "Type %s is already defined" s ();
+      if List.mem s types then errorf ~loc "EmlType %s is already defined" s ();
       let names = List.map fst constrs in
       List.iter (fun s ->
           if List.mem s vars
@@ -183,12 +183,12 @@ let check_top_shadowing tops =
 %left prec_app
 
 %start main
-%type <Syntax.top list> main
+%type <EmlSyntax.top list> main
 %%
 
 main:
   toplevel EOF { let tops = List.rev $1 in check_top_shadowing tops ; tops }
-| error        { errorf ~loc:(Location.from_symbol ()) "Syntax error" () }
+| error        { errorf ~loc:(EmlLocation.from_symbol ()) "EmlSyntax error" () }
 
 /*********************************************************************
  * Toplevel
@@ -217,11 +217,11 @@ toplevel_phrase:
     { mk (Top_let (false, $2, $4)) }
 | LET LIDENT formal_args EQUAL expr
   %prec prec_let
-    { check_dup_args ~loc:(Location.from_rhs 3) $3;
+    { check_dup_args ~loc:(EmlLocation.from_rhs 3) $3;
       mk (Top_let (false, $2, mk (Abs (List.rev $3, $5)))) }
 | LET REC LIDENT formal_args EQUAL expr
   %prec prec_let
-    { check_dup_args ~loc:(Location.from_rhs 4) $4;
+    { check_dup_args ~loc:(EmlLocation.from_rhs 4) $4;
       mk (Top_let (true, $3, mk (Abs (List.rev $4, $6)))) }
 
 formal_type_args:
@@ -244,13 +244,13 @@ vconstr_ident:
 | COLONCOLON        { "::" }
 
 /*********************************************************************
- * Types
+ * EmlTypes
  *********************************************************************/
 
 type_expr:
   simple_type { $1 }
-| tuple_type  { Type.Tuple (List.rev $1) }
-| arrow_type  { let (args, ret) = $1 in Type.Arrow (args, ret) }
+| tuple_type  { EmlType.Tuple (List.rev $1) }
+| arrow_type  { let (args, ret) = $1 in EmlType.Arrow (args, ret) }
 
 arrow_type:
   simple_type ARROW simple_type { ([$1], $3) }
@@ -261,15 +261,15 @@ tuple_type:
 | tuple_type STAR simple_type  { $3 :: $1 }
 
 simple_type:
-  type_var                              { Type.genvar ?name:$1 () }
-| UNIT                                  { Type.Unit }
-| BOOL                                  { Type.Bool }
-| CHAR                                  { Type.Char }
-| INT                                   { Type.Int }
-| FLOAT                                 { Type.Float }
-| LIDENT                                { Type.Tconstr ($1, []) }
-| simple_type LIDENT                    { Type.Tconstr ($2, [$1]) }
-| LPAREN actual_type_args RPAREN LIDENT { Type.Tconstr ($4, List.rev $2) }
+  type_var                              { EmlType.genvar ?name:$1 () }
+| UNIT                                  { EmlType.Unit }
+| BOOL                                  { EmlType.Bool }
+| CHAR                                  { EmlType.Char }
+| INT                                   { EmlType.Int }
+| FLOAT                                 { EmlType.Float }
+| LIDENT                                { EmlType.Tconstr ($1, []) }
+| simple_type LIDENT                    { EmlType.Tconstr ($2, [$1]) }
+| LPAREN actual_type_args RPAREN LIDENT { EmlType.Tconstr ($4, List.rev $2) }
 | LPAREN type_expr RPAREN               { $2 }
 
 actual_type_args:
@@ -290,7 +290,7 @@ expr:
     { $1 }
 | FUN formal_args ARROW expr
   %prec prec_fun
-    { check_dup_args ~loc:(Location.from_rhs 2) $2;
+    { check_dup_args ~loc:(EmlLocation.from_rhs 2) $2;
       mk (Abs (List.rev $2, $4)) }
 | IF expr THEN expr ELSE expr
   %prec prec_if
@@ -300,36 +300,36 @@ expr:
     { mk (Let (false, $2, $4, $6)) }
 | LET LIDENT formal_args EQUAL expr IN expr
   %prec prec_let
-    { check_dup_args ~loc:(Location.from_rhs 3) $3;
+    { check_dup_args ~loc:(EmlLocation.from_rhs 3) $3;
       mk (Let (false, $2, mk (Abs (List.rev $3, $5)), $7)) }
 | LET REC LIDENT formal_args EQUAL expr IN expr
   %prec prec_let
-    { check_dup_args ~loc:(Location.from_rhs 4) $4;
+    { check_dup_args ~loc:(EmlLocation.from_rhs 4) $4;
       mk (Let (true, $3, mk (Abs (List.rev $4, $6)), $8)) }
 | MATCH expr WITH match_cases
   %prec prec_match
     { mk (Match ($2, List.rev $4)) }
 | expr COLONCOLON expr                 { mk_exp_cons $1 $3 }
-| expr ANDAND expr                     { mk (Op (Op.And ($1, $3))) }
-| expr BARBAR expr                     { mk (Op (Op.Or ($1, $3))) }
-| expr EQUAL expr                      { mk (Op (Op.Eq ($1, $3))) }
-| expr LESS expr                       { mk (Op (Op.Lt ($1, $3))) }
-| expr GREATER expr                    { mk (Op (Op.Gt ($1, $3))) }
-| expr LESS_EQUAL expr                 { mk (Op (Op.Le ($1, $3))) }
-| expr GREATER_EQUAL expr              { mk (Op (Op.Ge ($1, $3))) }
-| expr LESS_GREATER expr               { mk (Op (Op.Ne ($1, $3))) }
-| expr PLUS expr                       { mk (Op (Op.Add ($1, $3))) }
-| expr MINUS expr                      { mk (Op (Op.Sub ($1, $3))) }
-| expr STAR expr                       { mk (Op (Op.Mul ($1, $3))) }
-| expr SLASH expr                      { mk (Op (Op.Div ($1, $3))) }
-| expr MOD expr                        { mk (Op (Op.Mod ($1, $3))) }
-| expr PLUSDOT expr                    { mk (Op (Op.FAdd ($1, $3))) }
-| expr MINUSDOT expr                   { mk (Op (Op.FSub ($1, $3))) }
-| expr STARDOT expr                    { mk (Op (Op.FMul ($1, $3))) }
-| expr SLASHDOT expr                   { mk (Op (Op.FDiv ($1, $3))) }
-| NOT expr                             { mk (Op (Op.Not $2)) }
-| PLUSDOT expr  %prec prec_unary_plus  { mk (Op (Op.FPos $2)) }
-| MINUSDOT expr %prec prec_unary_minus { mk (Op (Op.FNeg $2)) }
+| expr ANDAND expr                     { mk (EmlOp (EmlOp.And ($1, $3))) }
+| expr BARBAR expr                     { mk (EmlOp (EmlOp.Or ($1, $3))) }
+| expr EQUAL expr                      { mk (EmlOp (EmlOp.Eq ($1, $3))) }
+| expr LESS expr                       { mk (EmlOp (EmlOp.Lt ($1, $3))) }
+| expr GREATER expr                    { mk (EmlOp (EmlOp.Gt ($1, $3))) }
+| expr LESS_EQUAL expr                 { mk (EmlOp (EmlOp.Le ($1, $3))) }
+| expr GREATER_EQUAL expr              { mk (EmlOp (EmlOp.Ge ($1, $3))) }
+| expr LESS_GREATER expr               { mk (EmlOp (EmlOp.Ne ($1, $3))) }
+| expr PLUS expr                       { mk (EmlOp (EmlOp.Add ($1, $3))) }
+| expr MINUS expr                      { mk (EmlOp (EmlOp.Sub ($1, $3))) }
+| expr STAR expr                       { mk (EmlOp (EmlOp.Mul ($1, $3))) }
+| expr SLASH expr                      { mk (EmlOp (EmlOp.Div ($1, $3))) }
+| expr MOD expr                        { mk (EmlOp (EmlOp.Mod ($1, $3))) }
+| expr PLUSDOT expr                    { mk (EmlOp (EmlOp.FAdd ($1, $3))) }
+| expr MINUSDOT expr                   { mk (EmlOp (EmlOp.FSub ($1, $3))) }
+| expr STARDOT expr                    { mk (EmlOp (EmlOp.FMul ($1, $3))) }
+| expr SLASHDOT expr                   { mk (EmlOp (EmlOp.FDiv ($1, $3))) }
+| NOT expr                             { mk (EmlOp (EmlOp.Not $2)) }
+| PLUSDOT expr  %prec prec_unary_plus  { mk (EmlOp (EmlOp.FPos $2)) }
+| MINUSDOT expr %prec prec_unary_minus { mk (EmlOp (EmlOp.FNeg $2)) }
 | PLUS expr     %prec prec_unary_plus  { mk_exp_unary_plus $2 }
 | MINUS expr    %prec prec_unary_minus { mk_exp_unary_minus $2 }
 

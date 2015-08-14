@@ -16,8 +16,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 open Format
-open Utils
-open Location
+open EmlUtils
+open EmlLocation
 
 type const_pattern =
   | Punit
@@ -26,7 +26,7 @@ type const_pattern =
   | Pint of int
       [@@deriving show]
 
-type pattern = pattern_desc Location.loc
+type pattern = pattern_desc EmlLocation.loc
 and pattern_desc =
   | Pvar of string option
   | Pconst of const_pattern
@@ -42,25 +42,25 @@ type const =
   | Float of float
       [@@deriving show]
 
-type expr = expr_desc Location.loc
+type expr = expr_desc EmlLocation.loc
 and expr_desc =
   | Const of const
   | Var of string
   | Constr of string * expr list
   | Tuple of expr list
   | If of expr * expr * expr
-  | Op of expr Op.t
+  | EmlOp of expr EmlOp.t
   | App of expr * expr list
   | Abs of string option list * expr
   | Let of bool * string * expr * expr
   | Match of expr * (pattern * expr) list
-  | Constraint of expr * Type.t
+  | Constraint of expr * EmlType.t
   | Error
       [@@deriving show]
 
-type top = top_desc Location.loc
+type top = top_desc EmlLocation.loc
 and top_desc =
-  | Top_variant_type of string * Type.t list * (string * Type.t list) list
+  | Top_variant_type of string * EmlType.t list * (string * EmlType.t list) list
   | Top_let of bool * string * expr
   | Top_code of string
       [@@deriving show]

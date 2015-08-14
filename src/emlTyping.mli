@@ -15,4 +15,19 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-val convert : RemoveMatch.top list -> RemoveMatch.top list
+type pattern = pattern_desc EmlTypedExpr.typed [@@deriving show]
+and pattern_desc =
+  | Pvar of string option
+  | Pconst of EmlSyntax.const_pattern
+  | Ptuple of pattern list
+  | Pconstr of EmlTypedExpr.constr_tag * string * pattern list
+
+type expr = ext_expr EmlTypedExpr.base_expr
+and ext_expr =
+  | Match of expr * (pattern * expr) list
+  | Constraint of expr * EmlType.t
+                    [@@deriving show]
+
+type top = ext_expr EmlTypedExpr.base_top [@@deriving show]
+
+val typing : EmlType.context -> EmlSyntax.top list -> top list

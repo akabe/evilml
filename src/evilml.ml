@@ -15,20 +15,20 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open Utils
+open EmlUtils
 open Format
 
 (** Build-in functions and their types *)
 let builtin_ctx =
   [
-    "succ", Type.Arrow ([Type.Int], Type.Int);
-    "pred", Type.Arrow ([Type.Int], Type.Int);
-    "min", Type.Arrow ([Type.Int; Type.Int], Type.Int);
-    "max", Type.Arrow ([Type.Int; Type.Int], Type.Int);
-    "int_of_char", Type.Arrow ([Type.Int], Type.Char);
-    "char_of_int", Type.Arrow ([Type.Char], Type.Int);
+    "succ", EmlType.Arrow ([EmlType.Int], EmlType.Int);
+    "pred", EmlType.Arrow ([EmlType.Int], EmlType.Int);
+    "min", EmlType.Arrow ([EmlType.Int; EmlType.Int], EmlType.Int);
+    "max", EmlType.Arrow ([EmlType.Int; EmlType.Int], EmlType.Int);
+    "int_of_char", EmlType.Arrow ([EmlType.Int], EmlType.Char);
+    "char_of_int", EmlType.Arrow ([EmlType.Char], EmlType.Int);
   ]
-  |> List.map (fun (id, t) -> (id, Type.scheme t))
+  |> List.map (fun (id, t) -> (id, EmlType.scheme t))
 
 (** Build-in functions and their real names *)
 let builtin_tbl =
@@ -60,23 +60,23 @@ let compile ~embed in_fname in_code =
   let header = make_header in_fname embed in
   Lexing.from_string in_code (* Create `lexbuf' for lexing *)
   |> (fun lexbuf -> set_lexbuf lexbuf in_fname ; lexbuf)
-  |> Parser.main Lexer.main (* parsing *)
-  |> Typing.typing builtin_ctx (* type inference *)
+  |> EmlParser.main EmlLexer.main (* parsing *)
+  |> EmlTyping.typing builtin_ctx (* type inference *)
   |> (fun tops -> (* Hook: obtain the result of type inference *)
-      List.iter (fun top -> match top.Location.data with
-          | TypedExpr.Top_let (_, id, ts, _) ->
-            fprintf bf_tys.ppf "val %s : %a@." id Type.pp_scheme ts
+      List.iter (fun top -> match top.EmlLocation.data with
+          | EmlTypedExpr.Top_let (_, id, ts, _) ->
+            fprintf bf_tys.ppf "val %s : %a@." id EmlType.pp_scheme ts
           | _ -> ()) tops;
       tops)
-  |> RemoveMatch.convert (* Convert match-expressions into if-expressions *)
-  |> UnCurrying.convert (* UnCurrying functions *)
-  |> Assoc.convert (* Transformation for C++ *)
-  |> Boxing.convert builtin_ctx (* Insert boxing/unboxing *)
-  |> (fun tops -> Alpha.convert (* Alpha conversion (renaming identifiers) *)
-         (Alpha.make_renamer builtin_tbl tops) tops)
-  |> FlatLet.convert (* Flatten let-expressions *)
-  |> Cpp.convert ~header (* Convert ML code into C++ template code *)
-  |> List.iter (fprintf bf_out.ppf "%a@\n@\n" Cpp.pp_decl);
+  |> EmlRemoveMatch.convert (* Convert match-expressions into if-expressions *)
+  |> EmlUnCurrying.convert (* EmlUnCurrying functions *)
+  |> EmlAssoc.convert (* Transformation for C++ *)
+  |> EmlBoxing.convert builtin_ctx (* Insert boxing/unboxing *)
+  |> (fun tops -> EmlAlpha.convert (* EmlAlpha conversion (renaming identifiers) *)
+         (EmlAlpha.make_renamer builtin_tbl tops) tops)
+  |> EmlFlatLet.convert (* Flatten let-expressions *)
+  |> EmlCpp.convert ~header (* Convert ML code into C++ template code *)
+  |> List.iter (fprintf bf_out.ppf "%a@\n@\n" EmlCpp.pp_decl);
   (fetch_buffer_formatter bf_tys |> String.trim,
    fetch_buffer_formatter bf_out |> String.trim)
 
@@ -92,15 +92,15 @@ let input id =
   | _ -> failwith "Not <input> element"
 
 let report_error loc msg =
-  editor_set "cppEditor" (sfprintf "%a@\nError: %s" Location.pp loc msg ());
+  editor_set "cppEditor" (sfprintf "%a@\nError: %s" EmlLocation.pp loc msg ());
   match loc with
   | None -> ()
   | Some loc ->
     Unsafe.fun_call (Unsafe.js_expr "reportError")
-      [| Unsafe.inject (loc.Location.lnum_start);
-         Unsafe.inject (loc.Location.cnum_start);
-         Unsafe.inject (loc.Location.lnum_end);
-         Unsafe.inject (loc.Location.cnum_end);
+      [| Unsafe.inject (loc.EmlLocation.lnum_start);
+         Unsafe.inject (loc.EmlLocation.cnum_start);
+         Unsafe.inject (loc.EmlLocation.lnum_end);
+         Unsafe.inject (loc.EmlLocation.cnum_end);
          Unsafe.inject (string msg); |]
 
 let onclick _ =
@@ -113,7 +113,7 @@ let onclick _ =
         [| Unsafe.inject (string tyinf);
            Unsafe.inject (string out_code); |]
     with
-    | Compile_error ({ Location.loc; Location.data; }) -> report_error loc data
+    | Compile_error ({ EmlLocation.loc; EmlLocation.data; }) -> report_error loc data
   end;
   bool true
 

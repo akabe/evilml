@@ -16,22 +16,22 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 open Format
-open Utils
-open TypedExpr
-open RemoveMatch
+open EmlUtils
+open EmlTypedExpr
+open EmlRemoveMatch
 
 (* Eta conversion for uncurrying partial application *)
 let eta_conv ~loc e_fun e_args1 t_args2 t_ret =
   let ids = List.mapi (fun i _ -> "__ml_x" ^ string_of_int i) t_args2 in
   let e_args2 = List.map2 (mk_exp_var ~loc) ids t_args2 in
   let e_app = { loc; typ = t_ret; data = App (e_fun, e_args1 @ e_args2); } in
-  { loc; typ = Type.Arrow (t_args2, t_ret);
+  { loc; typ = EmlType.Arrow (t_args2, t_ret);
     data = Abs (List.map (fun x -> Some x) ids, e_app); }
 
 let rec conv_app ~loc e_fun e_args =
-  match Type.unarrow e_fun.typ with
+  match EmlType.unarrow e_fun.typ with
   | None -> errorf ~loc "Arrow type is expected but an expression has type %a"
-              Type.pp e_fun.typ ()
+              EmlType.pp e_fun.typ ()
   | Some (t_args, t_ret) ->
     let m = List.length e_args in (* # of actual arguments *)
     let n = List.length t_args in (* # of formal arguments *)
@@ -53,7 +53,7 @@ let rec conv_expr e = match e.data with
   | Ext (Proj (e0, i)) -> { e with data = Ext (Proj (conv_expr e0, i)) }
   | Constr (id, el) -> { e with data = Constr (id, List.map conv_expr el) }
   | Tuple el -> { e with data = Tuple (List.map conv_expr el) }
-  | Op op -> { e with data = Op (Op.map conv_expr op) }
+  | EmlOp op -> { e with data = EmlOp (EmlOp.map conv_expr op) }
   | If (e1, e2, e3) ->
     { e with data = If (conv_expr e1, conv_expr e2, conv_expr e3) }
   | Abs (args, e0) -> { e with data = Abs (args, conv_expr e0) }

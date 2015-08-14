@@ -15,11 +15,33 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-type expr = ext_expr TypedExpr.base_expr [@@deriving show]
-and ext_expr =
+type expr =
+  {
+    typ : EmlType.t;
+    data : expr_desc;
+  } [@@deriving show]
+and expr_desc =
+  | Error
+  | Const of EmlSyntax.const
+  | Var of string
+  | If of expr * expr * expr
+  | EmlOp of expr EmlOp.t
+  | Tuple of expr list
+  | Constr of string * expr list
+  | App of expr * expr list
+  | Box of expr
+  | Unbox of expr
   | Tag of expr (* Obtain the tag of a data constructor *)
   | Proj of expr * int (* Projection operator *)
 
-type top = ext_expr TypedExpr.base_top [@@deriving show]
+and let_expr = let_expr_desc list * expr [@@deriving show]
+and let_expr_desc =
+  | Let_val of string * EmlType.scheme * expr
+  | Let_fun of bool * string * EmlType.scheme * string option list * let_expr
 
-val convert : Typing.top list -> top list
+type top =
+  | Top_variant_type of string * EmlType.t list * (int * string * EmlType.t list) list
+  | Top_let of let_expr_desc
+  | Top_code of string [@@deriving show]
+
+val convert : EmlBoxing.top list -> top list

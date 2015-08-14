@@ -15,22 +15,22 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open Utils
+open EmlUtils
 open Format
-open TypedExpr
-open Boxing
+open EmlTypedExpr
+open EmlBoxing
 
 type renamer = StringSet.t * (string * string) list
 
 let make_renamer tbl0 tops =
-  let add ?(loc = Location.dummy) (seen, tbl) id1 id2 =
+  let add ?(loc = EmlLocation.dummy) (seen, tbl) id1 id2 =
     if StringSet.mem id2 seen
     then errorf ~loc "Duplicated identifier %s" id2 ();
     (StringSet.add id2 seen, (id1, id2) :: tbl)
   in
-  let aux rnm top = match top.Location.data with
+  let aux rnm top = match top.EmlLocation.data with
     | Top_code _ | Top_variant_type _ -> rnm
-    | Top_let (_, id, _, _) -> add ~loc:top.Location.loc rnm id id
+    | Top_let (_, id, _, _) -> add ~loc:top.EmlLocation.loc rnm id id
   in
   let rnm =
     List.fold_left (fun rnm (id1, id2) -> add rnm id1 id2)
@@ -45,7 +45,7 @@ let genid seen s =
   let s' = if StringSet.mem s seen then aux 1 else s in
   (StringSet.add s' seen, s')
 
-let rename_args tbl = List.map (Option.map (fun x -> List.assoc x tbl))
+let rename_args tbl = List.map (EmlOption.map (fun x -> List.assoc x tbl))
 
 let rec conv_expr tbl seen e = match e.data with
   | Const _ | Error -> (seen, e)
@@ -68,9 +68,9 @@ let rec conv_expr tbl seen e = match e.data with
   | Tuple el ->
     let (seen', el') = List.fold_map (conv_expr tbl) seen el in
     (seen', { e with data = Tuple el' })
-  | Op op ->
-    let (seen', op') = Op.fold_map (conv_expr tbl) seen op in
-    (seen', { e with data = Op op' })
+  | EmlOp op ->
+    let (seen', op') = EmlOp.fold_map (conv_expr tbl) seen op in
+    (seen', { e with data = EmlOp op' })
   | If (e1, e2, e3) ->
     let (seen', e1') = conv_expr tbl seen e1 in
     let (seen', e2') = conv_expr tbl seen' e2 in
@@ -99,4 +99,4 @@ let convert (seen, tbl) tops =
     | Top_code _ | Top_variant_type _ as e -> e
     | Top_let(rf, id, ts, e) -> Top_let(rf, id, ts, snd (conv_expr tbl seen e))
   in
-  List.map (Location.map aux) tops
+  List.map (EmlLocation.map aux) tops

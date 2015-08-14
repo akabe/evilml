@@ -15,19 +15,4 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-type pattern = pattern_desc TypedExpr.typed [@@deriving show]
-and pattern_desc =
-  | Pvar of string option
-  | Pconst of Syntax.const_pattern
-  | Ptuple of pattern list
-  | Pconstr of TypedExpr.constr_tag * string * pattern list
-
-type expr = ext_expr TypedExpr.base_expr
-and ext_expr =
-  | Match of expr * (pattern * expr) list
-  | Constraint of expr * Type.t
-                    [@@deriving show]
-
-type top = ext_expr TypedExpr.base_top [@@deriving show]
-
-val typing : Type.context -> Syntax.top list -> top list
+val convert : EmlRemoveMatch.top list -> EmlRemoveMatch.top list

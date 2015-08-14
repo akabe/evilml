@@ -16,10 +16,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 open Format
-open TypedExpr
-open Utils
+open EmlTypedExpr
+open EmlUtils
 
-module T = Typing
+module T = EmlTyping
 
 type expr = ext_expr base_expr [@@deriving show]
 and ext_expr =
@@ -29,24 +29,24 @@ and ext_expr =
 type top = ext_expr base_top [@@deriving show]
 
 let mk_exp_proj ~loc ~typ e i = { loc; typ; data = Ext (Proj (e, i)); }
-let mk_exp_tag ~loc e = { loc; typ = Type.Int; data = Ext (Tag e); }
-let mk_exp_eq ~loc e1 e2 = { loc; typ = Type.Bool; data = Op (Op.Eq (e1, e2)); }
+let mk_exp_tag ~loc e = { loc; typ = EmlType.Int; data = Ext (Tag e); }
+let mk_exp_eq ~loc e1 e2 = { loc; typ = EmlType.Bool; data = EmlOp (EmlOp.Eq (e1, e2)); }
 let mk_exp_if_eq ~loc e_lhs e_rhs e2 e3 =
   mk_exp_if ~loc (mk_exp_eq ~loc e_lhs e_rhs) e2 e3
 
 let rec conv_pat e e_then e_else p =
   let loc = e.loc in
   match p.data with
-  | T.Pvar None | T.Pconst Syntax.Punit -> e_then
+  | T.Pvar None | T.Pconst EmlSyntax.Punit -> e_then
   | T.Pvar (Some id) -> (* let id = e in e_then *)
     mk_exp_simple_let ~loc false id e e_then
-  | T.Pconst (Syntax.Pbool true) -> (* if e then e_then else e_else *)
+  | T.Pconst (EmlSyntax.Pbool true) -> (* if e then e_then else e_else *)
     mk_exp_if ~loc e e_then e_else
-  | T.Pconst (Syntax.Pbool false) -> (* if e then e_else else e_then *)
+  | T.Pconst (EmlSyntax.Pbool false) -> (* if e then e_else else e_then *)
     mk_exp_if ~loc e e_else e_then
-  | T.Pconst (Syntax.Pchar c) -> (* if e = c then e_then else e_else *)
+  | T.Pconst (EmlSyntax.Pchar c) -> (* if e = c then e_then else e_else *)
     mk_exp_if_eq ~loc e (mk_exp_char ~loc c) e_then e_else
-  | T.Pconst (Syntax.Pint n) -> (* if e = n then e_then else e_else *)
+  | T.Pconst (EmlSyntax.Pint n) -> (* if e = n then e_then else e_else *)
     mk_exp_if_eq ~loc e (mk_exp_int ~loc n) e_then e_else
   | T.Ptuple pl -> conv_pat_list ~loc e e_then e_else pl
   | T.Pconstr (tag, _, pl) ->
@@ -64,7 +64,7 @@ let rec conv_expr e = match e.data with
   | Var id -> { e with data = Var id }
   | Constr (id, el) -> { e with data = Constr (id, List.map conv_expr el) }
   | Tuple el -> { e with data = Tuple (List.map conv_expr el) }
-  | Op op -> { e with data = Op (Op.map conv_expr op) }
+  | EmlOp op -> { e with data = EmlOp (EmlOp.map conv_expr op) }
   | Abs (args, e0) -> { e with data = Abs (args, conv_expr e0) }
   | App (e0, el) ->
     { e with data = App (conv_expr e0, List.map conv_expr el) }
@@ -76,6 +76,6 @@ let rec conv_expr e = match e.data with
   | Ext (T.Match (e0, cases)) ->
     let e0' = conv_expr e0 in
     List.fold_right (fun (pi, ei) acc -> conv_pat e0' (conv_expr ei) acc pi)
-      cases { e with typ = Type.genvar (); data = Error; }
+      cases { e with typ = EmlType.genvar (); data = Error; }
 
 let convert = map conv_expr

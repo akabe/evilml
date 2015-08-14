@@ -1,14 +1,14 @@
 open Format
-open Utils
+open EmlUtils
 
-module S = Syntax
+module S = EmlSyntax
 
-(** {2 Typed expressions} *)
+(** {2 EmlTyped expressions} *)
 
 type 'a typed =
   {
-    loc : Location.t;
-    typ : Type.t;
+    loc : EmlLocation.t;
+    typ : EmlType.t;
     data : 'a;
   }
     [@@deriving show]
@@ -21,76 +21,76 @@ and 'a expr_desc =
   | Constr of string * 'a base_expr list
   | Tuple of 'a base_expr list
   | If of 'a base_expr * 'a base_expr * 'a base_expr
-  | Op of 'a base_expr Op.t
+  | EmlOp of 'a base_expr EmlOp.t
   | App of 'a base_expr * 'a base_expr list
   | Abs of string option list * 'a base_expr
-  | Let of bool * string * Type.scheme * 'a base_expr * 'a base_expr
+  | Let of bool * string * EmlType.scheme * 'a base_expr * 'a base_expr
   | Ext of 'a (* extended *)
         [@@deriving show]
 
-let mk_exp_error ~loc () = { loc; typ = Type.genvar (); data = Error; }
-let mk_exp_unit ~loc () = { loc; typ = Type.Unit; data = Const S.Unit; }
-let mk_exp_bool ~loc b = { loc; typ = Type.Bool; data = Const (S.Bool b); }
-let mk_exp_char ~loc c = { loc; typ = Type.Char; data = Const (S.Char c); }
-let mk_exp_int ~loc n = { loc; typ = Type.Int; data = Const (S.Int n); }
-let mk_exp_float ~loc x = { loc; typ = Type.Float; data = Const (S.Float x); }
+let mk_exp_error ~loc () = { loc; typ = EmlType.genvar (); data = Error; }
+let mk_exp_unit ~loc () = { loc; typ = EmlType.Unit; data = Const S.Unit; }
+let mk_exp_bool ~loc b = { loc; typ = EmlType.Bool; data = Const (S.Bool b); }
+let mk_exp_char ~loc c = { loc; typ = EmlType.Char; data = Const (S.Char c); }
+let mk_exp_int ~loc n = { loc; typ = EmlType.Int; data = Const (S.Int n); }
+let mk_exp_float ~loc x = { loc; typ = EmlType.Float; data = Const (S.Float x); }
 let mk_exp_var ~loc id t = { loc; typ = t; data = Var id; }
 let mk_exp_constr ~loc id t el = { loc; typ = t; data = Constr (id, el); }
 
 let mk_exp_var_lookup ~loc ctx id =
-  let tysc = Type.lookup ~loc id ctx in
-  mk_exp_var ~loc id (Type.instantiate tysc)
+  let tysc = EmlType.lookup ~loc id ctx in
+  mk_exp_var ~loc id (EmlType.instantiate tysc)
 
 let mk_exp_constr_lookup ~loc ctx id el =
-  let tysc = Type.lookup ~loc id ctx in
+  let tysc = EmlType.lookup ~loc id ctx in
   let t_args = List.map (fun ei -> ei.typ) el in
-  let t_ret = Type.genvar () in
-  match Type.unarrow (Type.instantiate tysc) with
+  let t_ret = EmlType.genvar () in
+  match EmlType.unarrow (EmlType.instantiate tysc) with
   | None -> errorf ~loc "Constructor %s has illegal type %a"
-              id Type.pp_scheme tysc ()
+              id EmlType.pp_scheme tysc ()
   | Some (u_args, u_ret) ->
     let m, n = List.length t_args, List.length u_args in
     if m <> n then errorf ~loc "Constructor %s expects %d argument(s) \
                                 but %d argument(s) are applied" id n m ();
-    List.iter2 (Type.unify ~loc) u_args t_args;
-    Type.unify ~loc u_ret t_ret;
+    List.iter2 (EmlType.unify ~loc) u_args t_args;
+    EmlType.unify ~loc u_ret t_ret;
     mk_exp_constr ~loc id t_ret el
 
 let mk_exp_tuple ~loc el =
   let tl = List.map (fun ei -> ei.typ) el in
-  { loc; typ = Type.Tuple tl; data = Tuple el; }
+  { loc; typ = EmlType.Tuple tl; data = Tuple el; }
 
 let mk_exp_if ~loc e1 e2 e3 =
-  Type.unify ~loc e1.typ Type.Bool;
-  Type.unify ~loc e2.typ e3.typ;
+  EmlType.unify ~loc e1.typ EmlType.Bool;
+  EmlType.unify ~loc e2.typ e3.typ;
   { loc; typ = e2.typ; data = If (e1, e2, e3); }
 
 let mk_exp_app ~loc e_fun e_args =
   let t_args = List.map (fun ei -> ei.typ) e_args in
-  let t_ret = Type.genvar () in
-  let t_fun = Type.Arrow (t_args, t_ret) in
-  Type.unify ~loc e_fun.typ t_fun;
+  let t_ret = EmlType.genvar () in
+  let t_fun = EmlType.Arrow (t_args, t_ret) in
+  EmlType.unify ~loc e_fun.typ t_fun;
   { loc; typ = t_ret; data = App (e_fun, e_args); }
 
 let mk_exp_abs ?arg_types ~loc ctx f args e_body =
   let t_args = match arg_types with
-    | None -> List.map (fun _ -> Type.genvar ()) args
+    | None -> List.map (fun _ -> EmlType.genvar ()) args
     | Some t_args -> t_args in
   let ctx' = List.fold_left2 (fun acc t -> function
-      | Some x -> (x, Type.scheme t) :: acc
+      | Some x -> (x, EmlType.scheme t) :: acc
       | None -> acc) ctx t_args args in
   let e_body' = f ctx' e_body in
-  let t_fun = Type.Arrow (t_args, e_body'.typ) in
+  let t_fun = EmlType.Arrow (t_args, e_body'.typ) in
   { loc; typ = t_fun; data = Abs (args, e_body'); }
 
 let mk_exp_let_rhs ~loc ctx f rf id e1 =
   let e1' = if not rf then f ctx e1 else begin
-      let tx = Type.genvar () in
-      let e1' = f ((id, Type.scheme tx) :: ctx) e1 in
-      Type.unify ~loc tx e1'.typ;
+      let tx = EmlType.genvar () in
+      let e1' = f ((id, EmlType.scheme tx) :: ctx) e1 in
+      EmlType.unify ~loc tx e1'.typ;
       e1'
     end in
-  let ts = Type.generalize ctx e1'.typ in
+  let ts = EmlType.generalize ctx e1'.typ in
   (ts, e1')
 
 let mk_exp_let ~loc ctx f rf id e1 e2 =
@@ -99,21 +99,21 @@ let mk_exp_let ~loc ctx f rf id e1 e2 =
   { loc; typ = e2'.typ; data = Let (rf, id, ts, e1', e2'); }
 
 let mk_exp_simple_let ~loc rf id e1 e2 =
-  { loc; typ = e2.typ; data = Let (rf, id, Type.scheme e1.typ, e1, e2) }
+  { loc; typ = e2.typ; data = Let (rf, id, EmlType.scheme e1.typ, e1, e2) }
 
 (** {2 Top-level declaration} *)
 
-module L = Location
+module L = EmlLocation
 
 type constr_tag = int [@@deriving show]
 
-type 'a base_top = 'a top_desc Location.loc
+type 'a base_top = 'a top_desc EmlLocation.loc
 and 'a top_desc =
   | Top_variant_type
     of string (* type name *)
-       * Type.t list (* type parameters of type constructor *)
-       * (constr_tag * string * Type.t list) list (* constructors *)
-  | Top_let of bool * string * Type.scheme * 'a base_expr
+       * EmlType.t list (* type parameters of type constructor *)
+       * (constr_tag * string * EmlType.t list) list (* constructors *)
+  | Top_let of bool * string * EmlType.scheme * 'a base_expr
   | Top_code of string
                  [@@deriving show]
 
@@ -138,6 +138,6 @@ let fold_map f_vtype f_let init =
   List.fold_map aux init
 
 let typeof_constrs name args cs =
-  let t_ret = Type.Tconstr (name, args) in
-  let aux (_, _, t_args) = Type.generalize [] (Type.Arrow (t_args, t_ret)) in
+  let t_ret = EmlType.Tconstr (name, args) in
+  let aux (_, _, t_args) = EmlType.generalize [] (EmlType.Arrow (t_args, t_ret)) in
   List.map aux cs

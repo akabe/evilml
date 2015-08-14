@@ -1,5 +1,5 @@
 open Format
-open Utils
+open EmlUtils
 
 type 'a t =
   (* comparison *)

@@ -17,5 +17,5 @@
 
 type decl
 
-val convert : header:string -> FlatLet.top list -> decl list
+val convert : header:string -> EmlFlatLet.top list -> decl list
 val pp_decl : Format.formatter -> decl -> unit

@@ -15,4 +15,11 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-val convert : RemoveMatch.top list -> RemoveMatch.top list
+type expr = ext_expr EmlTypedExpr.base_expr [@@deriving show]
+and ext_expr =
+  | Tag of expr (* Obtain the tag of a data constructor *)
+  | Proj of expr * int (* Projection operator *)
+
+type top = ext_expr EmlTypedExpr.base_top [@@deriving show]
+
+val convert : EmlTyping.top list -> top list

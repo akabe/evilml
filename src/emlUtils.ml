@@ -22,7 +22,7 @@ let identity x = x
 let ( << ) f g x = f (g x)
 let ( >> ) f g x = g (f x)
 
-module Option =
+module EmlOption =
 struct
   let map f = function
     | Some x -> Some (f x)
@@ -165,9 +165,9 @@ let gen_fresh_name prefix =
   let c = ref 0 in
   fun () -> incr c ; prefix ^ string_of_int !c
 
-exception Compile_error of string Location.loc
+exception Compile_error of string EmlLocation.loc
 
-let errorf ?(loc = Location.dummy) fmt =
+let errorf ?(loc = EmlLocation.dummy) fmt =
   Format.skfprintf
-    (fun s -> raise (Compile_error Location.({ loc; data = s; })))
+    (fun s -> raise (Compile_error EmlLocation.({ loc; data = s; })))
     fmt
