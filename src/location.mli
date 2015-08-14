@@ -1,4 +1,13 @@
-type t
+type position =
+  {
+    fname : string;
+    lnum_start : int;
+    cnum_start : int;
+    lnum_end : int;
+    cnum_end : int;
+  }
+
+type t = position option
 
 val dummy : t
 val from_position2 : Lexing.position -> Lexing.position -> t

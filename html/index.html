@@ -4,6 +4,7 @@
     <meta charset="utf8">
     <link rel="stylesheet" href="css/codemirror.css">
     <style text="text/css">
+     .line-error { background: yellow; }
      .CodeMirror {
        font-size: 0.85em;
        border: 1px solid #ccc;
@@ -30,6 +31,7 @@
     <p>See <a href="https://github.com/akabe/evilml">https://github.com/akabe/evilml</a> for details.</p>
     <div>
       <input type="button" value="Compile" id="btn_compile">
+      <input type="button" value="Remove error highlight" id="btn_unerror" disabled>
       <input type="checkbox" id="chk_embed">
       <label for="chk_embed">
         Generate stand-alone code
@@ -101,6 +103,7 @@ int main () { // We use printf in order to output readable assembly code.
     <script src="js/mllike.js"></script>
     <script src="js/clike.js"></script>
     <script>
+     // CodeMirror editor for source code (OCaml)
      var mlEditor = CodeMirror.fromTextArea(
        document.getElementById("mlcode"),
        {
@@ -108,6 +111,7 @@ int main () { // We use printf in order to output readable assembly code.
          lineNumbers: true,
          viewportMargin: Infinity
        });
+     // CodeMirror editor for type inference result
      var typeInfEditor = CodeMirror.fromTextArea(
        document.getElementById("type_inf"),
        {
@@ -116,6 +120,7 @@ int main () { // We use printf in order to output readable assembly code.
          viewportMargin: Infinity,
          readOnly: true
        });
+     // CodeMirror editor for output code (C++)
      var cppEditor = CodeMirror.fromTextArea(
        document.getElementById("cppcode"),
        {
@@ -124,6 +129,23 @@ int main () { // We use printf in order to output readable assembly code.
          autoRefresh: true,
          readOnly: true
        });
+
+     function reportError (line1, ch1, line2, ch2, msg) {
+       var btn = document.getElementById("btn_unerror");
+       if (!btn.disabled) btn.onclick(); // Remove the last error highlight
+       // Line numbers are zero-based.
+       var marker = mlEditor.markText(
+         { line: line1 - 1, ch: ch1 },
+         { line: line2 - 1, ch: ch2 },
+         { className: "line-error", title: msg }
+       );
+       // Enable "Remove error highlight" button
+       btn.disabled = false;
+       btn.onclick = function () {
+         marker.clear();
+         btn.disabled = true;
+       };
+     }
     </script>
     <script src="js/evilml.js"></script>
   </body>

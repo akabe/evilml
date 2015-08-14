@@ -80,14 +80,6 @@ let compile ~embed in_fname in_code =
   (fetch_buffer_formatter bf_tys |> String.trim,
    fetch_buffer_formatter bf_out |> String.trim)
 
-let main ~embed in_code =
-  try compile ~embed "(none)" in_code
-  with
-  | Compile_error ({ Location.loc; Location.data; }) ->
-    let err_msg = sfprintf "%a@\nError: %s@\n[Stack trace]@\n%s"
-        Location.pp loc data (Printexc.get_backtrace ()) () in
-    ("", err_msg)
-
 open Js
 open Dom_html
 
@@ -99,6 +91,18 @@ let input id =
   | Input x -> x
   | _ -> failwith "Not <input> element"
 
+let report_error loc msg =
+  editor_set "cppEditor" (sfprintf "%a@\nError: %s" Location.pp loc msg ());
+  match loc with
+  | None -> ()
+  | Some loc ->
+    Unsafe.fun_call (Unsafe.js_expr "reportError")
+      [| Unsafe.inject (loc.Location.lnum_start);
+         Unsafe.inject (loc.Location.cnum_start);
+         Unsafe.inject (loc.Location.lnum_end);
+         Unsafe.inject (loc.Location.cnum_end);
+         Unsafe.inject (string msg); |]
+
 let onclick _ =
   let embed = to_bool (input "chk_embed")##checked in
   let in_code = editor_get "mlEditor" in
@@ -108,10 +112,7 @@ let onclick _ =
       editor_set "typeInfEditor" tyinf;
       editor_set "cppEditor" out_code
     with
-    | Compile_error ({ Location.loc; Location.data; }) ->
-      let err_msg = sfprintf "%a@\nError: %s@\n[Stack trace]@\n%s"
-          Location.pp loc data (Printexc.get_backtrace ()) () in
-      Unsafe.eval_string (sprintf "alert(%S);" err_msg)
+    | Compile_error ({ Location.loc; Location.data; }) -> report_error loc data
   end;
   bool true
 

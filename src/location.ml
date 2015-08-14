@@ -1,25 +1,23 @@
 type position =
   {
     fname : string;
-    lnum : int;
-    bol : int;
+    lnum_start : int;
     cnum_start : int;
+    lnum_end : int;
     cnum_end : int;
   }
 
-type t =
-  | Dummy
-  | Pos of position
+type t = position option
 
-let dummy = Dummy
+let dummy = None
 
 let from_position2 p1 p2 =
   let open Lexing in
-  Pos { fname = p1.pos_fname;
-        lnum = p1.pos_lnum;
-        bol = p1.pos_bol;
-        cnum_start = p1.pos_cnum;
-        cnum_end = p2.pos_cnum; }
+  Some { fname = p1.pos_fname;
+         lnum_start = p1.pos_lnum;
+         cnum_start = p1.pos_cnum - p1.pos_bol;
+         lnum_end = p2.pos_lnum;
+         cnum_end = p2.pos_cnum - p2.pos_bol; }
 
 let from_lexbuf lexbuf =
   from_position2 (Lexing.lexeme_start_p lexbuf) (Lexing.lexeme_end_p lexbuf)
@@ -36,10 +34,10 @@ let from_rhs2 m n =
 let pp ppf =
   let open Format in
   function
-  | Dummy -> ()
-  | Pos p ->
-    fprintf ppf "File %S, line %d, characters %d-%d:"
-      p.fname p.lnum (p.cnum_start - p.bol) (p.cnum_end - p.bol)
+  | None -> ()
+  | Some p ->
+    fprintf ppf "File %S, from line %d character %d, to line %d character %d"
+      p.fname p.lnum_start p.cnum_start p.lnum_end p.cnum_end
 
 type 'a loc =
   {

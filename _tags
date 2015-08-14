@@ -22,5 +22,5 @@ true: annot, bin_annot
 # OASIS_STOP
 
 true: -traverse
-<**/*.ml{,i}>: warn(A-4-33-41-42-43-34-44), strict_sequence, safe_string
-<src/evilml.ml>: package(js_of_ocaml.syntax)
+<**/*.ml{,i}>: debug, warn(A-4-33-41-42-43-34-44), strict_sequence, safe_string
+<src/evilml.ml>: debug, package(js_of_ocaml.syntax)
