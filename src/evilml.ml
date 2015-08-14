@@ -109,8 +109,9 @@ let onclick _ =
   begin
     try
       let (tyinf, out_code) = compile ~embed "(none)" in_code in
-      editor_set "typeInfEditor" tyinf;
-      editor_set "cppEditor" out_code
+      Unsafe.fun_call (Unsafe.js_expr "showResult")
+        [| Unsafe.inject (string tyinf);
+           Unsafe.inject (string out_code); |]
     with
     | Compile_error ({ Location.loc; Location.data; }) -> report_error loc data
   end;
