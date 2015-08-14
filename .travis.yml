@@ -1,5 +1,6 @@
 language: cpp
 script: bash -e .travis-ci.sh
 cache: apt
+sudo: required
 os:
   - linux
