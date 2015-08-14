@@ -22,7 +22,7 @@ open RemoveMatch
 
 (* Eta conversion for uncurrying partial application *)
 let eta_conv ~loc e_fun e_args1 t_args2 t_ret =
-  let ids = List.mapi (fun i _ -> "__x" ^ string_of_int i) t_args2 in
+  let ids = List.mapi (fun i _ -> "__ml_x" ^ string_of_int i) t_args2 in
   let e_args2 = List.map2 (mk_exp_var ~loc) ids t_args2 in
   let e_app = { loc; typ = t_ret; data = App (e_fun, e_args1 @ e_args2); } in
   { loc; typ = Type.Arrow (t_args2, t_ret);

@@ -41,9 +41,9 @@ let make_ident lexbuf =
   try
     Hashtbl.find keyword_table s
   with Not_found ->
-    if String.length s >= 2 && s.[0] = '_' && s.[1] = '_'
+    if String.has_prefix "__ml_" s
     then errorf ~loc:(Location.from_lexbuf lexbuf)
-        "Prefix `__' is reserved: %s" s ()
+        "Prefix `__ml_' is reserved: %s" s ()
     else if 'A' <= s.[0] && s.[0] <= 'Z' then UIDENT s else LIDENT s
 
 let get_quoted lexbuf =

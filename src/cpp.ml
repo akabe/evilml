@@ -128,7 +128,7 @@ and conv_op deps op =
     let e1' = conv_expr deps e1 in
     let e2' = conv_expr deps e2 in
     match typ with
-    | Type.Tconstr ("__boxed", _) ->
+    | Type.Tconstr ("__ml_boxed", _) ->
       mk_exp_op (mk (mk_exp_unbox e1') (mk_exp_unbox e2'))
     | _ when Type.is_basetype typ -> mk_exp_op (mk e1' e2')
     | _ -> mk_exp_vmem (mk_exp_app (mk_exp_var id_cmp) [e1'; e2']) member_val
@@ -156,7 +156,7 @@ and conv_let_expr_desc deps = function
   | F.Let_val (id, _, e) ->
     match e.F.data with
     | F.Box e0 when Type.is_basetype (Type.observe e0.F.typ) ->
-      (* let id = __box e0 *)
+      (* let id = __ml_box e0 *)
       let e0' = conv_expr deps e0 in
       let decl = Class (id, [], [mk_decl_tag (-1);
                                  Static (member_val, e0.F.typ, e0')]) in
@@ -199,7 +199,7 @@ let convert ~header =
       constrs' @ rev_tops
     | F.Top_code s -> Code s :: rev_tops
   in
-  List.fold_left aux [Code header] >> List.rev(* >> annotate*)
+  List.fold_left aux [Code header] >> List.rev
 
 (** {2 Pretty printing} *)
 

@@ -34,7 +34,7 @@ Difference from OCaml:
   arguments and l.h.s. of let bindings.
 - Exhaustivity checking of pattern matching is not implemented. (future work)
 - Identifiers are defined as regular expression `[a-zA-Z_][a-zA-Z0-9_]*`.
-  Primes cannot be used, and names that begin `__` (double underscores) are
+  Primes cannot be used, and names that begin `__ml_` are
   reserved by this compiler. Identifiers of data constructors begin capital
   letters.
 - Top-level shadowing of identifiers (variables, types, and constructors) is

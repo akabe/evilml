@@ -20,8 +20,8 @@ open Utils
 open TypedExpr
 open RemoveMatch
 
-let fresh_then_name = gen_fresh_name "__then"
-let fresh_else_name = gen_fresh_name "__else"
+let fresh_then_name = gen_fresh_name "__ml_then"
+let fresh_else_name = gen_fresh_name "__ml_else"
 
 (** [let_wrap id e] returns expression [let id = e in id]. *)
 let let_wrap id e =
@@ -35,7 +35,9 @@ let lazy_wrap id e =
   let_wrap id e_abs
 
 (** [if e1 then e2 else e3] is converted into
-    [(if (let __then _ = e2 in __then) else (let __else _ = e3 in __else)) ()]
+    [(if e1
+      then (let __ml_then _ = e2 in __then)
+      else (let __ml_else _ = e3 in __else)) ()]
     because C++ template if is implemented as a function (call-by-value). *)
 let conv_if ~loc e1 e2 e3 =
   let e2' = lazy_wrap (fresh_then_name ()) e2 in

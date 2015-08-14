@@ -37,6 +37,11 @@ module String =
 struct
   include String
 
+  let has_prefix prefix s =
+    let m = String.length prefix in
+    let n = String.length s in
+    if m <= n then String.sub s 0 m = prefix else false
+
   let to_list s =
     let rec aux i l = if i < 0 then l else aux (i-1) (s.[i] :: l) in
     aux (String.length s - 1) []

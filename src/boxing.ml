@@ -32,15 +32,15 @@ type top = ext_expr base_top [@@deriving show]
 
 let rec box_type t = match Type.observe t with
   | Type.Bool | Type.Char | Type.Int | Type.Float ->
-    Type.Tconstr ("__boxed", [t])
+    Type.Tconstr ("__ml_boxed", [t])
   | Type.Arrow (args, ret) ->
     Type.Arrow (List.map box_type args, box_type ret)
-  | Type.Tconstr (name, tl) when name <> "__boxed" ->
+  | Type.Tconstr (name, tl) when name <> "__ml_boxed" ->
     Type.Tconstr (name, List.map box_type tl)
   | _ -> t
 
 let unbox_type t = match Type.observe t with
-  | Type.Tconstr ("__boxed", [t']) -> Some t'
+  | Type.Tconstr ("__ml_boxed", [t']) -> Some t'
   | _ -> None
 
 (** Insert boxing if a given expression has a base type. *)

@@ -51,7 +51,7 @@ type top =
   | Top_let of let_expr_desc
   | Top_code of string [@@deriving show]
 
-let fresh_fun_name = gen_fresh_name "__fun"
+let fresh_fun_name = gen_fresh_name "__ml_fun"
 
 let rec conv_expr rev_lets { E.data; E.typ; _ } = match data with
   | E.Error -> (rev_lets, { typ; data = Error })
