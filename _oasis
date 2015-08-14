@@ -30,3 +30,12 @@ Executable evilmlJS
   BuildTools:            ocamlbuild
   BuildDepends:          ppx_deriving.show,js_of_ocaml
   CompiledObject:        byte
+
+##
+## Tests
+##
+
+Test test
+  Run$:                 flag(tests)
+  WorkingDirectory:     test/
+  Command:              sh test.sh
