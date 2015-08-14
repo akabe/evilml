@@ -22,8 +22,6 @@ let identity x = x
 let ( << ) f g x = f (g x)
 let ( >> ) f g x = g (f x)
 
-let ptr x = Obj.magic x * 2 (* Obtain a pointer *)
-
 module Option =
 struct
   let map f = function
@@ -134,10 +132,21 @@ struct
     let pp_delim ppf = pp_print_char ppf ',' ; pp_print_space ppf () in
     pp_list ~pp_delim pp
 
+  type buffer_formatter = { buffer : Buffer.t; ppf : formatter; }
+
+  let create_buffer_formatter n =
+    let buffer = Buffer.create n in
+    let ppf = formatter_of_buffer buffer in
+    { buffer; ppf; }
+
+  let fetch_buffer_formatter bf =
+    pp_print_flush bf.ppf ();
+    Buffer.contents bf.buffer
+
   let skfprintf k fmt =
-    let b = Buffer.create 16 in
-    let aux ppf = pp_print_flush ppf () ; k (Buffer.contents b) in
-    kfprintf aux (formatter_of_buffer b) fmt
+    let bf = create_buffer_formatter 16 in
+    let aux ppf = k (fetch_buffer_formatter bf) in
+    kfprintf aux bf.ppf fmt
 
   let sfprintf fmt = skfprintf (fun s () -> s) fmt
 end

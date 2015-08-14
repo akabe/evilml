@@ -3,9 +3,6 @@
  *                                  Evil ML                                   *
  *                                                                            *
  *                 Compiler from ML to C++ template language                  *
- *                      (distributed under MIT License)                       *
- *                                                                            *
- *                       Copyright (C) 2015 Akinori ABE                       *
  *                                                                            *
  * ========================================================================== */
 

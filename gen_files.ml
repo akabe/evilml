@@ -15,31 +15,26 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open Utils
 open Format
-open Js
-open Dom_html
 
-let compile in_code =
-  let b = Buffer.create 256 in
-  let ppf = formatter_of_buffer b in
+let read_file fname =
+  let open Buffer in
+  let ic = open_in fname in
+  let b = create 256 in
   try
-    Lexing.from_string in_code
-    |> Compile.run ~header:"#include \"evilml.hpp\"" "(none)"
-    |> List.iter (fprintf ppf "%a@\n@." Cpp.pp_decl);
-    pp_print_flush ppf ();
-    Buffer.contents b
-  with
-  | Compile_error ({ Location.loc; Location.data; }) ->
-    sfprintf "%a@\nError: %s@." Location.pp loc data ()
+    while true do
+      add_string b (input_line ic);
+      add_char b '\n'
+    done;
+    assert false
+  with End_of_file ->
+    close_in ic;
+    contents b
 
-let onclick _ =
-  let code = (Unsafe.variable "ocamlEditor")##getDoc()##getValue()
-             |> to_string
-             |> compile in
-  (Unsafe.variable "cppEditor")##getDoc()##setValue(string code);
-  bool true
-
-let _ =
-  let btn = getElementById "btn_compile" in
-  addEventListener btn Event.click (Dom.handler onclick) (bool false)
+let () =
+  let s = read_file "includes/evilml.hpp" in
+  let oc = open_out "src/evilml_hpp.ml" in
+  let ppf = formatter_of_out_channel oc in
+  fprintf ppf "let contents = %S@." s;
+  pp_print_flush ppf ();
+  close_out oc

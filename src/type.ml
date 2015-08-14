@@ -18,6 +18,8 @@
 open Utils
 open Format
 
+type type_var = int
+
 type t =
   | Unit
   | Bool
@@ -27,9 +29,18 @@ type t =
   | Arrow of t list * t
   | Tuple of t list
   | Tconstr of string * t list
-  | Var of string option * t option ref (* for destructive unification *)
+  | Var of string option * type_var
+  | Ref of t ref (* for destructive unification *)
 
 (** {2 Types} *)
+
+let genvar =
+  let c = ref 0 in
+  fun ?name () -> incr c ; Ref (ref (Var (name, !c)))
+
+let rec observe = function
+  | Ref r -> observe !r
+  | t -> t
 
 let name_of_int n =
   let chrs = "abcdefghijklmnopqrstuvwxyz" in
@@ -41,19 +52,27 @@ let name_of_int n =
   in
   if n = 0 then "a" else aux n
 
+let is_basetype t = match observe t with
+  | Bool | Char | Int | Float -> true
+  | _ -> false
+
+let unarrow t = match observe t with
+  | Arrow (args, ret) -> Some (args, ret)
+  | _ -> None
+
 let get_var_name =
   let tbl = ref [] in
-  fun (x : t option ref) ->
-    try List.assoc (ptr x) !tbl
+  fun (x : type_var) ->
+    try List.assoc x !tbl
     with Not_found ->
       let name = "'" ^ name_of_int (List.length !tbl) in
-      tbl := (ptr x, name) :: !tbl;
+      tbl := (x, name) :: !tbl;
       name
 
 let rec pp ppf t =
-  let rec aux b ppf = function
-    | Var (_, { contents = Some t }) -> aux b ppf t
-    | Var (_, r) -> pp_var ppf r
+  let rec aux b ppf t = match observe t with
+    | Ref _ -> assert false
+    | Var (_, i) -> pp_var ppf i
     | Unit -> pp_print_string ppf "unit"
     | Bool -> pp_print_string ppf "bool"
     | Char -> pp_print_string ppf "char"
@@ -79,29 +98,20 @@ and pp_tuple pp =
   in
   pp_list ~pp_delim pp
 
-and pp_var ppf = function
-  | { contents = Some t } -> pp ppf t
-  | r -> pp_print_string ppf (get_var_name r)
-
-let genvar ?name () = Var (name, ref None)
-
-let rec observe = function
-  | Var (_, { contents = Some t }) -> observe t
-  | t -> t
-
-let is_basetype t = match observe t with
-  | Bool | Char | Int | Float -> true
-  | _ -> false
-
-let unarrow t = match observe t with
-  | Arrow (args, ret) -> Some (args, ret)
-  | _ -> None
+and pp_var ppf i = pp_print_string ppf (get_var_name i)
 
 let rec occurs_check x t = match observe t with
+  | Ref _ -> assert false
   | Var (_, y) -> x != y
   | Unit | Bool | Char | Int | Float -> true
   | Arrow (args, ret) -> List.for_all (occurs_check x) (ret :: args)
   | Tuple tl | Tconstr (_, tl) -> List.for_all (occurs_check x) tl
+
+(** [bind x t] binds type variable [x] to type [t]. *)
+let rec bind = function
+  | Ref { contents = (Ref _ as t) } -> bind t
+  | Ref ({ contents = Var _ } as r) -> fun t -> r := t
+  | _ -> failwith "Type.bind"
 
 let unify ~loc t0 u0 =
   let rec aux t u = match observe t, observe u with
@@ -111,8 +121,8 @@ let unify ~loc t0 u0 =
     | Int, Int -> ()
     | Float, Float -> ()
     | Var (_, x), Var (_, y) when x == y -> ()
-    | Var (_, x), _ when occurs_check x u -> x := Some u
-    | _, Var (_, y) when occurs_check y t -> y := Some t
+    | Var (_, x), _ when occurs_check x u -> bind t u
+    | _, Var (_, y) when occurs_check y t -> bind u t
     | Tuple tl, Tuple ul -> List.iter2 aux tl ul
     | Tconstr (ts, tl), Tconstr (us, ul) when ts = us ->
       (try List.iter2 aux tl ul
@@ -135,9 +145,8 @@ let unify ~loc t0 u0 =
 (** {2 Type scheme} *)
 
 module VarsSet = Set.Make(struct
-    type elt = t
-    type t = elt option ref
-    let compare x y = Pervasives.compare (ptr x) (ptr y)
+    type t = type_var
+    let compare = Pervasives.compare
   end)
 
 type scheme = VarsSet.t * t
@@ -147,10 +156,10 @@ type context = (string * scheme) list
 let scheme t = (VarsSet.empty, t)
 
 let free_vars_in_type =
-  let rec aux acc = function
+  let rec aux acc t = match observe t with
+    | Ref _ -> assert false
     | Unit | Bool | Char | Int | Float -> acc
-    | Var (_, { contents = Some t }) -> aux acc t
-    | Var (_, r) -> VarsSet.add r acc
+    | Var (_, i) -> VarsSet.add i acc
     | Tuple tl -> List.fold_left aux acc tl
     | Tconstr (_, tl) -> List.fold_left aux acc tl
     | Arrow (args, ret) -> List.fold_left aux (aux acc ret) args
@@ -168,17 +177,20 @@ let free_vars_in_context ctx =
 (** [subst_vars vars t0] substitutes type variables [vars] in [t0] for fresh
     variables. *)
 let subst_vars vars t0 =
-  let tbl = List.map (fun old -> (old, ref None)) (VarsSet.elements vars) in
-  let subst tv = try List.assq tv tbl with Not_found -> tv in
-  let rec aux t = match t with
+  let tbl = List.map (fun i -> (i, genvar ())) (VarsSet.elements vars) in
+  let rec aux t = match observe t with
+    | Ref _ -> assert false
     | Unit | Bool | Char | Int | Float -> t
-    | Var (s, ({ contents = None } as r)) -> Var (s, subst r)
-    | Var (_, { contents = Some t }) -> aux t
+    | Var (_, i) -> if VarsSet.mem i vars then List.assoc i tbl else t
     | Tuple tl -> Tuple (List.map aux tl)
     | Tconstr (s, tl) -> Tconstr (s, List.map aux tl)
     | Arrow (args, ret) -> Arrow (List.map aux args, aux ret)
   in
-  (VarsSet.of_list (List.map snd tbl), aux t0)
+  let var_num (_, t) = match observe t with
+    | Var (_, i) -> i
+    | _ -> assert false
+  in
+  (VarsSet.of_list (List.map var_num tbl), aux t0)
 
 let generalize ctx t =
   let bound_vars = free_vars_in_context ctx in
@@ -190,7 +202,7 @@ let instantiate (vars, t) = subst_vars vars t |> snd
 let pp_scheme ppf (vars, t) =
   match VarsSet.elements vars with
   | [] -> pp ppf t
-  | l -> fprintf ppf "forall @[%a@].@ @[%a@]"
+  | l -> fprintf ppf "@[forall @[%a@].@;<1 2>@[%a@]@]"
            (pp_list_comma pp_var) l pp t
 
 (** {2 Typing contexts} *)

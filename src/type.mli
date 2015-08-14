@@ -15,16 +15,19 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+type type_var = int
+
 type t =
   | Unit
   | Bool
   | Char
   | Int
   | Float
-  | Arrow of t list * t (* arguments are uncurried *)
+  | Arrow of t list * t
   | Tuple of t list
   | Tconstr of string * t list
-  | Var of string option * t option ref (* for destructive unification *)
+  | Var of string option * type_var
+  | Ref of t ref (* for destructive unification *)
 
 (** {2 Types} *)
 

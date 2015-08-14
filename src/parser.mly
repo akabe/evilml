@@ -49,13 +49,14 @@ let mk_pat_string ?loc s =
   |> List.rev
   |> mk_pat_list ?loc
 
-let scope_tyvars tbl =
-  let rec aux t = match t with
+let resolve_scope_tyvars ~loc tbl =
+  let rec aux t = match Type.observe t with
+    | Type.Ref _ -> assert false
     | Type.Unit | Type.Bool | Type.Char | Type.Int | Type.Float -> t
     | Type.Var (None, _) -> t
     | Type.Var (Some s, _) ->
       if Hashtbl.mem tbl s then Type.Var (Some s, Hashtbl.find tbl s)
-      else failwith ("Unbound type parameter " ^ s)
+      else errorf ~loc "Unbound type parameter %s" s ()
     | Type.Arrow (args, ret) -> Type.Arrow (List.map aux args, aux ret)
     | Type.Tuple tl -> Type.Tuple (List.map aux tl)
     | Type.Tconstr (s, tl) -> Type.Tconstr (s, List.map aux tl)
@@ -69,13 +70,13 @@ let mk_type ?(loc = Location.from_symbol ()) name rev_args rev_constrs =
   let args = rev_args
              |> List.rev
              |> List.map (fun name -> Type.genvar ?name ()) in
-  List.iter (function
-      | Type.Var (Some s, r) -> Hashtbl.add tbl s r
+  List.iter (fun t -> match Type.observe t with
+      | Type.Var (Some s, i) -> Hashtbl.add tbl s i
       | _ -> ()) args;
   let constrs = rev_constrs
                 |> List.rev
                 |> List.map (fun (name, t) ->
-                    (name, scope_tyvars tbl t)) in
+                    (name, resolve_scope_tyvars ~loc tbl t)) in
   Top_variant_type (name, args, constrs) |> mk ~loc
 
 (** [find_type name tops] finds the declaration of type [name]. *)
@@ -90,6 +91,7 @@ let find_type name =
     constructors in type [t]. *)
 let check_type ~loc tops =
   let rec aux t = match Type.observe t with
+    | Type.Ref _ -> assert false
     | Type.Unit | Type.Bool | Type.Char | Type.Int | Type.Float
     | Type.Var _ -> ()
     | Type.Arrow (args, ret) -> List.iter aux (ret :: args)
