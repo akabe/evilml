@@ -50,8 +50,8 @@ let set_lexbuf lexbuf fname =
 let make_header in_fname =
   let hpp_fname = "evilml.hpp" in
   function
-  | false -> sprintf "#include %S\n" hpp_fname
-  | true -> sprintf "#line 1 %S\n%s\n#line 1 %S\n"
+  | false -> sprintf "#include %S" hpp_fname
+  | true -> sprintf "#line 1 %S\n%s\n#line 1 %S"
               hpp_fname Evilml_hpp.contents in_fname
 
 let compile ~embed in_fname in_code =

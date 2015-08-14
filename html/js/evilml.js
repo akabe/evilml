@@ -4014,14 +4014,12 @@
       [0,
        [11,
         caml_new_string_c_("#line 1 "),
-        [3,
-         0,
-         [12,10,[2,0,[11,caml_new_string_c_("\n#line 1 "),[3,0,[12,10,0]]]]]]],
-       caml_new_string_c_("#line 1 %S\n%s\n#line 1 %S\n")],
+        [3,0,[12,10,[2,0,[11,caml_new_string_c_("\n#line 1 "),[3,0,0]]]]]],
+       caml_new_string_c_("#line 1 %S\n%s\n#line 1 %S")],
      _sj_=
       [0,
-       [11,caml_new_string_c_("#include "),[3,0,[12,10,0]]],
-       caml_new_string_c_("#include %S\n")],
+       [11,caml_new_string_c_("#include "),[3,0,0]],
+       caml_new_string_c_("#include %S")],
      _sh_=
       [0,
        [0,caml_new_string_c_(str_succ_hL_),[0,[0,3,0],3]],
