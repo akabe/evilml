@@ -40,6 +40,24 @@ Difference from OCaml:
 - Top-level shadowing of identifiers (variables, types, and constructors) is
   prohibited.
 
+Install
+-------
+
+```
+./configure
+make
+make install
+```
+
+Usage
+-----
+
+You can compile `foo.ml` as follows:
+
+```
+evilml foo.ml
+```
+
 Demo: quick sort
 ----------------
 
