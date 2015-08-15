@@ -11,7 +11,6 @@ sudo apt-get install -qq ${APT_DEPENDS}
 export OPAMYES=1
 export OPAMVERBOSE=1
 opam init
-opam switch $OCAML_VERSION
 eval `opam config env`
 
 # Show OCaml and OPAM versions
@@ -25,6 +24,6 @@ opam --git-version
 opam install ${OPAM_DEPENDS}
 
 # Test
-./configure $CONFIG --enable-tests
+./configure --enable-tests
 make
 make test
