@@ -24,6 +24,9 @@ Features
 - Type inference is performed. Most types are automatically inferred.
 - Variant types are supported.
 - You can write raw C++ code in `(*! ... *)` in top level.
+- `#use "foo.ml"` loads .ml files in top level (double semi-colons `;;`
+  are not needed at the end). The .ml files you can load are found in
+  directory [evilml/include](https://github.com/akabe/evilml/blob/master/include).
 
 Difference from OCaml:
 
