@@ -3471,10 +3471,10 @@
           caml_new_string_c_("\nbut an expression was expected of type "),
           [15,
            [11,
-            caml_new_string_c_("\nEmlType "),
+            caml_new_string_c_("\nType "),
             [15,[11,caml_new_string_c_(" is not compatible with "),[15,0]]]]]]]],
        caml_new_string_c_
-        ("This expression has type %a\nbut an expression was expected of type %a\nEmlType %a is not compatible with %a")],
+        ("This expression has type %a\nbut an expression was expected of type %a\nType %a is not compatible with %a")],
      _n5_=caml_new_string_c_(str_cb_),
      _n3_=caml_new_string_c_(str_ml_boxed_cM_),
      _n1_=caml_new_string_c_(str_ml_boxed_cM_),
@@ -15073,40 +15073,43 @@
     function _gA_(loc_a_,op_b_)
      { /*<<src/emlTypedExpr.ml 64 2>>*/ switch(op_b_[0])
        {case 6:
+          /*<<src/emlTypedExpr.ml 72 6>>*/ var _d_=op_b_[1];
           /*<<src/emlTypedExpr.ml 72 6>>*/  /*<<src/emlTypedExpr.ml 72 6>>*/ unify_N_
-          (loc_a_,op_b_[1][2],1);
+          (_d_[1],_d_[2],1);
          var _c_=1;
          break;
         case 7:
         case 8:
-         var _d_=op_b_[2];
+         var _e_=op_b_[2],_f_=op_b_[1];
           /*<<src/emlTypedExpr.ml 75 6>>*/  /*<<src/emlTypedExpr.ml 75 6>>*/ unify_N_
-          (loc_a_,op_b_[1][2],1);
+          (_f_[1],_f_[2],1);
           /*<<src/emlTypedExpr.ml 76 6>>*/  /*<<src/emlTypedExpr.ml 76 6>>*/ unify_N_
-          (loc_a_,_d_[2],1);
+          (_e_[1],_e_[2],1);
          var _c_=1;
          break;
         case 9:
         case 10:
+         var _g_=op_b_[1];
           /*<<src/emlTypedExpr.ml 80 6>>*/  /*<<src/emlTypedExpr.ml 80 6>>*/ unify_N_
-          (loc_a_,op_b_[1][2],3);
+          (_g_[1],_g_[2],3);
          var _c_=3;
          break;
         case 16:
         case 17:
+         var _j_=op_b_[1];
           /*<<src/emlTypedExpr.ml 89 6>>*/  /*<<src/emlTypedExpr.ml 89 6>>*/ unify_N_
-          (loc_a_,op_b_[1][2],4);
+          (_j_[1],_j_[2],4);
          var _c_=3;
          break;
         case 18:
         case 19:
         case 20:
         case 21:
-         var _f_=op_b_[2];
+         var _k_=op_b_[2],_l_=op_b_[1];
           /*<<src/emlTypedExpr.ml 93 6>>*/  /*<<src/emlTypedExpr.ml 93 6>>*/ unify_N_
-          (loc_a_,op_b_[1][2],4);
+          (_l_[1],_l_[2],4);
           /*<<src/emlTypedExpr.ml 94 6>>*/  /*<<src/emlTypedExpr.ml 94 6>>*/ unify_N_
-          (loc_a_,_f_[2],4);
+          (_k_[1],_k_[2],4);
          var _c_=4;
          break;
         case 11:
@@ -15114,11 +15117,11 @@
         case 13:
         case 14:
         case 15:
-         var _e_=op_b_[2];
+         var _h_=op_b_[2],_i_=op_b_[1];
           /*<<src/emlTypedExpr.ml 84 6>>*/  /*<<src/emlTypedExpr.ml 84 6>>*/ unify_N_
-          (loc_a_,op_b_[1][2],3);
+          (_i_[1],_i_[2],3);
           /*<<src/emlTypedExpr.ml 85 6>>*/  /*<<src/emlTypedExpr.ml 85 6>>*/ unify_N_
-          (loc_a_,_e_[2],3);
+          (_h_[1],_h_[2],3);
          var _c_=3;
          break;
         default:

@@ -4,7 +4,7 @@ Evil ML
 [![Build Status](https://travis-ci.org/akabe/evilml.svg)](https://travis-ci.org/akabe/evilml)
 
 Evil ML is a joke compiler from ML to **C++ template language**
-(not ordinary C++ code).
+(not ordinary C++ code). Please, don't use this for practical purposes.
 
 C++ template is a **higher-order pure functional** programming language
 traditionally used for **compile-time** computation, while its syntax is
@@ -12,7 +12,7 @@ verbose and hard to use.
 [ML](https://en.wikipedia.org/wiki/ML_%28programming_language%29),
 a higher-order functional programming language, is simple, practical and
 easy to understand, so that we jokingly implemented this compiler. You can
-easily use black magic in C++ template programming.
+easily use black magic in C++ template programming. This will give you nightmares.
 
 P.S. `constexpr` (supported C++11 or above) is useful. Why don't you use it?
 
@@ -21,8 +21,8 @@ Features
 
 - [OCaml](http://ocaml.org)-like higher-order pure functional language
   (Hindley-Milner polymorphism, no value restriction).
-- Type inference is performed. Most type annotations are automatically inferred.
-- Variant, a flexible and strong data structure, is supported.
+- Type inference is performed. Most types are automatically inferred.
+- Variant types are supported.
 - You can write raw C++ code in `(*! ... *)` in top level.
 
 Difference from OCaml:

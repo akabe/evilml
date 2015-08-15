@@ -151,7 +151,7 @@ let unify ~loc t0 u0 =
     | Arrow _, Arrow ([], ur) -> aux t ur
     | _ -> errorf ~loc "This expression has type %a\n\
                         but an expression was expected of type %a\n\
-                        EmlType %a is not compatible with %a"
+                        Type %a is not compatible with %a"
              pp t0 pp u0 pp t pp u ()
   in
   aux t0 u0

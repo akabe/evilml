@@ -69,29 +69,29 @@ let mk_exp_op ~loc op =
       EmlType.Bool
     (* boolean operators *)
     | EmlOp.Not e1 ->
-      EmlType.unify ~loc e1.typ EmlType.Bool;
+      EmlType.unify ~loc:e1.loc e1.typ EmlType.Bool;
       EmlType.Bool
     | EmlOp.And (e1, e2) | EmlOp.Or (e1, e2) ->
-      EmlType.unify ~loc e1.typ EmlType.Bool;
-      EmlType.unify ~loc e2.typ EmlType.Bool;
+      EmlType.unify ~loc:e1.loc e1.typ EmlType.Bool;
+      EmlType.unify ~loc:e2.loc e2.typ EmlType.Bool;
       EmlType.Bool
     (* integer operators *)
     | EmlOp.Pos e1 | EmlOp.Neg e1 ->
-      EmlType.unify ~loc e1.typ EmlType.Int;
+      EmlType.unify ~loc:e1.loc e1.typ EmlType.Int;
       EmlType.Int
     | EmlOp.Add (e1, e2) | EmlOp.Sub (e1, e2) | EmlOp.Mul (e1, e2)
     | EmlOp.Div (e1, e2) | EmlOp.Mod (e1, e2) ->
-      EmlType.unify ~loc e1.typ EmlType.Int;
-      EmlType.unify ~loc e2.typ EmlType.Int;
+      EmlType.unify ~loc:e1.loc e1.typ EmlType.Int;
+      EmlType.unify ~loc:e2.loc e2.typ EmlType.Int;
       EmlType.Int
     (* floating-point-value operators *)
     | EmlOp.FPos e1 | EmlOp.FNeg e1 ->
-      EmlType.unify ~loc e1.typ EmlType.Float;
+      EmlType.unify ~loc:e1.loc e1.typ EmlType.Float;
       EmlType.Int
     | EmlOp.FAdd (e1, e2) | EmlOp.FSub (e1, e2) | EmlOp.FMul (e1, e2)
     | EmlOp.FDiv (e1, e2) ->
-      EmlType.unify ~loc e1.typ EmlType.Float;
-      EmlType.unify ~loc e2.typ EmlType.Float;
+      EmlType.unify ~loc:e1.loc e1.typ EmlType.Float;
+      EmlType.unify ~loc:e2.loc e2.typ EmlType.Float;
       EmlType.Float
   in
   { loc; typ; data = Op op; }
