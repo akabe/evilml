@@ -4,7 +4,6 @@ let rec foldr f xs acc = match xs with
   | [] -> acc
   | x :: xs -> f x (foldr f xs acc)
 
-let length xs = foldr (fun _ acc -> acc + 1) xs 0
 let append xs ys = foldr (fun y acc -> y :: acc) xs ys
 let filter f xs = foldr (fun x acc -> if f x then x :: acc else acc) xs []
 

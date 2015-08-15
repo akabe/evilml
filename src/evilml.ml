@@ -20,6 +20,7 @@ open Format
 
 module Opts =
 struct
+  let header = ref (Filename.concat EmlConfig.include_dir "evilml.hpp")
   let input_file = ref ""
   let output_file = ref ""
   let verbose = ref false
@@ -27,6 +28,7 @@ struct
 
   let speclist =
     [
+      ("--header", Arg.Set_string header, "\tSpecify path of C++ header");
       ("--output", Arg.Set_string output_file, "\tSpecify an output file");
       ("--embed", Arg.Set embed, "\tEmbed header file \"evilml.hpp\"");
       ("--verbose", Arg.Set verbose, "\tVerbose mode");
@@ -46,22 +48,11 @@ struct
     then output_file := (Filename.chop_extension !input_file) ^ ".cpp"
 end
 
-let find_header () =
-  let basename = "evilml.hpp" in
-  try
-    [ EmlConfig.include_dir; "."; "./include" ]
-    |> List.map (fun dir -> Filename.concat dir basename)
-    |> List.find Sys.file_exists
-  with Not_found ->
-    eprintf "Error: Not found %S" basename;
-    exit (-1)
-
 let make_header () =
-  let hpp_path = find_header () in
   if !Opts.embed
   then sprintf "#line 1 %S\n%s\n#line 1 %S"
-      hpp_path (read_file hpp_path) !Opts.output_file
-  else sprintf "#include %S" hpp_path
+      !Opts.header (read_file !Opts.header) !Opts.output_file
+  else sprintf "#include %S" !Opts.header
 
 let main in_fname out_fname =
   let ic = open_in in_fname in
