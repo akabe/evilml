@@ -23,7 +23,7 @@ Executable evilml
   BuildTools:            ocamlbuild
   BuildDepends:          ppx_deriving.show
   CompiledObject:        best
-  DataFiles:             ../includes/*.hpp
+  DataFiles:             ../include/*.hpp
 
 Executable evilmlJS
   Path:                  src

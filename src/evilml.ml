@@ -46,8 +46,18 @@ struct
     then output_file := (Filename.chop_extension !input_file) ^ ".cpp"
 end
 
-let header =
-  let hpp_path = Filename.concat EmlConfig.include_dir "evilml.hpp" in
+let find_header () =
+  let basename = "evilml.hpp" in
+  try
+    [ EmlConfig.include_dir; "."; "./include" ]
+    |> List.map (fun dir -> Filename.concat dir basename)
+    |> List.find Sys.file_exists
+  with Not_found ->
+    eprintf "Error: Not found %S" basename;
+    exit (-1)
+
+let make_header () =
+  let hpp_path = find_header () in
   if !Opts.embed
   then sprintf "#line 1 %S\n%s\n#line 1 %S"
       hpp_path (read_file hpp_path) !Opts.output_file
@@ -68,7 +78,7 @@ let main in_fname out_fname =
       Lexing.from_channel ic
       |> EmlCompile.run
         ?hook_typing:(if !Opts.verbose then Some hook_typing else None)
-        ~header in_fname
+        ~header:(make_header ()) in_fname
       |> List.iter (fprintf ppf "%a@\n@\n" EmlCpp.pp_decl)
     with
     | Compile_error ({ EmlLocation.loc; EmlLocation.data; }) ->

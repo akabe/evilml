@@ -24,6 +24,7 @@ opam --git-version
 opam install ${OPAM_DEPENDS}
 
 # Test
-./configure --enable-tests
+./configure --prefix=`opam config var prefix` --enable-tests
 make
+make install
 make test

@@ -40,6 +40,6 @@ let make_ml in_file out_file =
   close_out oc
 
 let () =
-  make_ml "includes/evilml.hpp" "src/evilml_hpp.ml";
+  make_ml "include/evilml.hpp" "src/evilml_hpp.ml";
   make_ml "examples/fib/fib.ml" "src/example_fib.ml";
   make_ml "examples/quicksort/qsort.ml" "src/example_qsort.ml"
