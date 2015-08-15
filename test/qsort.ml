@@ -1,42 +1,30 @@
-type 'a list = [] | :: of 'a * 'a list
-
-let rec foldr f xs acc = match xs with
-  | [] -> acc
-  | x :: xs -> f x (foldr f xs acc)
-
-let append xs ys = foldr (fun y acc -> y :: acc) xs ys
-let filter f xs = foldr (fun x acc -> if f x then x :: acc else acc) xs []
+#use "list.ml"
 
 let rec qsort xs = match xs with
   | [] -> []
   | [x] -> [x]
   | pivot :: rest ->
-    let ys = qsort (filter (fun x -> x < pivot) rest) in
-    let zs = qsort (filter (fun x -> x >= pivot) rest) in
-    append ys (pivot :: zs)
-
-let rec nth i xs = match xs with
-  | [] -> error
-  | x :: xs -> if i = 0 then x else nth (i-1) xs
+    match list_partition (fun x -> x < pivot) rest with
+    | (ys, zs) -> list_append (qsort ys) (pivot :: qsort zs)
 
 let xs = [5; 4; 8; 1; 6; 3; 7; 2]
-let x0 = nth 0 xs
-let x1 = nth 1 xs
-let x2 = nth 2 xs
-let x3 = nth 3 xs
-let x4 = nth 4 xs
-let x5 = nth 5 xs
-let x6 = nth 6 xs
-let x7 = nth 7 xs
+let x0 = list_nth xs 0
+let x1 = list_nth xs 1
+let x2 = list_nth xs 2
+let x3 = list_nth xs 3
+let x4 = list_nth xs 4
+let x5 = list_nth xs 5
+let x6 = list_nth xs 6
+let x7 = list_nth xs 7
 let ys = qsort xs
-let y0 = nth 0 ys
-let y1 = nth 1 ys
-let y2 = nth 2 ys
-let y3 = nth 3 ys
-let y4 = nth 4 ys
-let y5 = nth 5 ys
-let y6 = nth 6 ys
-let y7 = nth 7 ys
+let y0 = list_nth ys 0
+let y1 = list_nth ys 1
+let y2 = list_nth ys 2
+let y3 = list_nth ys 3
+let y4 = list_nth ys 4
+let y5 = list_nth ys 5
+let y6 = list_nth ys 6
+let y7 = list_nth ys 7
 
 (*!
 // This is C++ code.

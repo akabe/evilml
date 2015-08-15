@@ -20,6 +20,8 @@ open Format
 open Js
 open Dom_html
 
+let input_fname = "(none)"
+
 let editor_get id = to_string (Unsafe.variable id)##getDoc()##getValue()
 let editor_set id s = (Unsafe.variable id)##getDoc()##setValue(string s)
 
@@ -31,14 +33,14 @@ let input id =
 let report_error loc msg =
   editor_set "cppEditor" (sfprintf "%a@\nError: %s" EmlLocation.pp loc msg ());
   match loc with
-  | None -> ()
-  | Some loc ->
+  | Some loc when loc.EmlLocation.fname = input_fname ->
     Unsafe.fun_call (Unsafe.js_expr "reportError")
       [| Unsafe.inject (loc.EmlLocation.lnum_start);
          Unsafe.inject (loc.EmlLocation.cnum_start);
          Unsafe.inject (loc.EmlLocation.lnum_end);
          Unsafe.inject (loc.EmlLocation.cnum_end);
          Unsafe.inject (string msg); |]
+  | _ -> ()
 
 let make_header embed =
   let hpp_fname = "evilml.hpp" in
@@ -46,6 +48,12 @@ let make_header embed =
   then sprintf "#line 1 %S\n%s\n#line 1 \"output.cpp\""
       hpp_fname Evilml_hpp.contents
   else sprintf "#include %S" hpp_fname
+
+let loader loc fname =
+  match fname with
+  | "option.ml" -> Lexing.from_string Option_ml.contents
+  | "list.ml" -> Lexing.from_string List_ml.contents
+  | _ -> errorf ~loc "File %S is not found" fname ()
 
 let compile () =
   let embed = to_bool (input "chk_embed")##checked in
@@ -61,7 +69,8 @@ let compile () =
   begin
     try
       let lexbuf = Lexing.from_string in_code in
-      EmlCompile.run ~hook_typing ~header:(make_header embed) "(none)" lexbuf
+      EmlCompile.run
+        ~loader ~hook_typing ~header:(make_header embed) input_fname lexbuf
       |> List.iter (fprintf bf_out.ppf "%a@\n@\n" EmlCpp.pp_decl);
       let tyinf = fetch_buffer_formatter bf_tys |> String.trim in
       let out_code = fetch_buffer_formatter bf_out |> String.trim in

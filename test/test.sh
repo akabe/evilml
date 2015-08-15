@@ -2,7 +2,7 @@
 
 set -eu
 
-EVILML="../evilml.native --header ../include/evilml.hpp --embed --verbose"
+EVILML="../evilml.native -I ../include --header ../include/evilml.hpp --embed --verbose"
 
 echo "Checking fib.ml ..."
 $EVILML fib.ml

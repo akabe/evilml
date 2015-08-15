@@ -112,5 +112,6 @@ let typing ctx =
       let (ts, e1') = mk_exp_let_rhs ~loc ctx typing_expr rf id e1 in
       ((id, ts) :: ctx, { L.loc; L.data = Top_let (rf, id, ts, e1') })
     | S.Top_code s -> (ctx, { L.loc; L.data = Top_code s; })
+    | S.Top_use _ -> failwith "Typing.typing: Syntax.Top_use remains"
   in
   List.fold_map aux ctx >> snd

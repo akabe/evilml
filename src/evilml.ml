@@ -20,6 +20,7 @@ open Format
 
 module Opts =
 struct
+  let use_dirs = ref []
   let header = ref (Filename.concat EmlConfig.include_dir "evilml.hpp")
   let input_file = ref ""
   let output_file = ref ""
@@ -28,6 +29,8 @@ struct
 
   let speclist =
     [
+      ("-I", Arg.String (fun s -> use_dirs := s :: !use_dirs),
+       "\tAdd directory for #use-directive");
       ("--header", Arg.Set_string header, "\tSpecify path of C++ header");
       ("--output", Arg.Set_string output_file, "\tSpecify an output file");
       ("--embed", Arg.Set embed, "\tEmbed header file \"evilml.hpp\"");
@@ -48,28 +51,38 @@ struct
     then output_file := (Filename.chop_extension !input_file) ^ ".cpp"
 end
 
-let make_header () =
+let header =
   if !Opts.embed
   then sprintf "#line 1 %S\n%s\n#line 1 %S"
       !Opts.header (read_file !Opts.header) !Opts.output_file
   else sprintf "#include %S" !Opts.header
 
-let main in_fname out_fname =
-  let ic = open_in in_fname in
-  let oc = open_out out_fname in
-  let ppf = formatter_of_out_channel oc in
-  let hook_typing tops =
+let hook_typing =
+  let f tops =
     List.iter (fun top -> match top.EmlLocation.data with
         | EmlTypedExpr.Top_let (_, id, ts, _) ->
           printf "val %s : %a@." id EmlType.pp_scheme ts
         | _ -> ()) tops
   in
+  if !Opts.verbose then Some f else None
+
+let loader loc fname =
+  try
+    let path = !Opts.use_dirs @ [EmlConfig.include_dir; "."]
+               |> List.map (fun dir -> Filename.concat dir fname)
+               |> List.find Sys.file_exists in
+    Lexing.from_channel (open_in path)
+  with Not_found ->
+    errorf ~loc "File %S is not found" fname ()
+
+let main in_fname out_fname =
+  let ic = open_in in_fname in
+  let oc = open_out out_fname in
+  let ppf = formatter_of_out_channel oc in
   begin
     try
       Lexing.from_channel ic
-      |> EmlCompile.run
-        ?hook_typing:(if !Opts.verbose then Some hook_typing else None)
-        ~header:(make_header ()) in_fname
+      |> EmlCompile.run ~loader ?hook_typing ~header in_fname
       |> List.iter (fprintf ppf "%a@\n@\n" EmlCpp.pp_decl)
     with
     | Compile_error ({ EmlLocation.loc; EmlLocation.data; }) ->

@@ -40,6 +40,17 @@ let make_ml in_file out_file =
   close_out oc
 
 let () =
-  make_ml "include/evilml.hpp" "src/evilml_hpp.ml";
   make_ml "examples/fib/fib.ml" "src/example_fib.ml";
-  make_ml "examples/quicksort/qsort.ml" "src/example_qsort.ml"
+  make_ml "examples/quicksort/qsort.ml" "src/example_qsort.ml";
+  make_ml "include/evilml.hpp" "src/evilml_hpp.ml";
+  let in_mls = Sys.readdir "include"
+               |> Array.to_list
+               |> List.filter (fun fname -> Filename.check_suffix fname "ml") in
+  let out_mls = in_mls
+                |> List.map (String.map (function '.' -> '_' | c -> c))
+                |> List.map (fun fname -> fname ^ ".ml") in
+  List.iter2 (fun in_fname out_fname ->
+      let in_path = Filename.concat "include" in_fname in
+      let out_path = Filename.concat "src" out_fname in
+      make_ml in_path out_path)
+    in_mls out_mls

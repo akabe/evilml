@@ -18,6 +18,8 @@
 open EmlUtils
 open Format
 
+module L = EmlLocation
+
 (** Build-in functions and their types *)
 let builtin_ctx =
   [
@@ -42,15 +44,31 @@ let builtin_tbl =
   ]
 
 (** Set an input filename to `lexbuf'. *)
-let set_lexbuf lexbuf fname =
+let init_lexbuf lexbuf fname =
   let open Lexing in
   lexbuf.lex_curr_p <- { pos_fname = fname; pos_lnum = 1;
                          pos_bol = 0; pos_cnum = 0; }
 
-let run ?(hook_typing = ignore) ~header in_fname lexbuf =
-  set_lexbuf lexbuf in_fname;
-  lexbuf
-  |> EmlParser.main EmlLexer.main (* parsing *)
+let parsing loader =
+  let rec aux used tops0 fname lexbuf =
+    init_lexbuf lexbuf fname;
+    let tops = EmlParser.main EmlLexer.main lexbuf in (* parsing *)
+    (* Load .ml files specified by #use-directives. *)
+    List.fold_right
+      (fun top tops' ->
+         match top.L.data with
+         | EmlSyntax.Top_use fname ->
+           if List.mem fname used then tops'
+           else aux (fname :: used) tops' fname (loader top.L.loc fname)
+         | _ -> top :: tops')
+      tops tops0
+  in
+  aux [] []
+
+let default_loader _ = failwith "#use-directive is not supported"
+
+let run ?(loader = default_loader) ?(hook_typing = ignore) ~header fname lexbuf =
+  parsing loader fname lexbuf
   |> EmlTyping.typing builtin_ctx (* type inference *)
   |> (fun tops -> hook_typing tops ; tops) (* Hook typing results *)
   |> EmlRemoveMatch.convert (* Convert match-expressions into if-expressions *)

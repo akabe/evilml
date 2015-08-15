@@ -16,8 +16,8 @@ let () = List.iter (fun (kwd, tok) -> Hashtbl.add keyword_table kwd tok)
     "if", IF;
     "then", THEN;
     "else", ELSE;
-    "true", VBOOL true;
-    "false", VBOOL false;
+    "true", LITERAL_BOOL true;
+    "false", LITERAL_BOOL false;
     "let", LET;
     "rec", REC;
     "in", IN;
@@ -73,6 +73,7 @@ rule main = parse
 | "(*"           { comment lexbuf ; main lexbuf }
 | "(*!"          { Buffer.clear code_buf ; cpp_code lexbuf ;
                    CPP_CODE (get_code ()) }
+| "#use"         { HASH_USE }
 | "&&"           { ANDAND }
 | "||"           { BARBAR }
 | '|'            { BAR }
@@ -101,10 +102,10 @@ rule main = parse
 | ']'            { RBRACKET }
 | '_'            { UNDERSCORE }
 | '\''           { QUOTE }
-| int_literal    { VINT (int_of_string (Lexing.lexeme lexbuf)) }
-| float_literal  { VFLOAT (float_of_string (Lexing.lexeme lexbuf)) }
-| char_literal   { VCHAR ((get_quoted lexbuf).[0]) }
-| str_literal    { VSTRING (get_quoted lexbuf) }
+| int_literal    { LITERAL_INT (int_of_string (Lexing.lexeme lexbuf)) }
+| float_literal  { LITERAL_FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
+| char_literal   { LITERAL_CHAR ((get_quoted lexbuf).[0]) }
+| str_literal    { LITERAL_STRING (get_quoted lexbuf) }
 | identifier     { make_ident lexbuf }
 | eof            { EOF }
 | _              { errorf ~loc:(EmlLocation.from_lexbuf lexbuf)

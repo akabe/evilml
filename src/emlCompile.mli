@@ -16,6 +16,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 val run :
+  ?loader:(EmlLocation.t -> string -> Lexing.lexbuf) ->
   ?hook_typing:(EmlTyping.top list -> unit) ->
   header:string ->
   string ->

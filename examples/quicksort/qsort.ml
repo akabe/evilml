@@ -1,36 +1,24 @@
 (* Example: quick sort *)
 
-type 'a list = [] | :: of 'a * 'a list
-
-let rec foldr f xs acc = match xs with
-  | [] -> acc
-  | x :: xs -> f x (foldr f xs acc)
-
-let append xs ys = foldr (fun y acc -> y :: acc) xs ys
-let filter f xs = foldr (fun x acc -> if f x then x :: acc else acc) xs []
+#use "list.ml"
 
 let rec qsort xs = match xs with
   | [] -> []
   | [x] -> [x]
   | pivot :: rest ->
-    let ys = qsort (filter (fun x -> x < pivot) rest) in
-    let zs = qsort (filter (fun x -> x >= pivot) rest) in
-    append ys (pivot :: zs)
-
-let rec nth i xs = match xs with
-  | [] -> error
-  | x :: xs -> if i = 0 then x else nth (i-1) xs
+    match list_partition (fun x -> x < pivot) rest with
+    | (ys, zs) -> list_append (qsort ys) (pivot :: qsort zs)
 
 let l1 = [5; 4; 8; 1; 6; 3; 7; 2]
 let l2 = qsort l1
-let x0 = nth 0 l2
-let x1 = nth 1 l2
-let x2 = nth 2 l2
-let x3 = nth 3 l2
-let x4 = nth 4 l2
-let x5 = nth 5 l2
-let x6 = nth 6 l2
-let x7 = nth 7 l2
+let x0 = list_nth l2 0
+let x1 = list_nth l2 1
+let x2 = list_nth l2 2
+let x3 = list_nth l2 3
+let x4 = list_nth l2 4
+let x5 = list_nth l2 5
+let x6 = list_nth l2 6
+let x7 = list_nth l2 7
 
 (*!
 // This is C++ code.

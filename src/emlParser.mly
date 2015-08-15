@@ -125,17 +125,17 @@ let check_top_shadowing tops =
       if List.mem s vars
       then errorf ~loc "Top-level identifier %s is already defined" s ();
       (types, s :: vars)
-    | Top_code _ -> (types, vars)
+    | Top_code _ | Top_use _ -> (types, vars)
   in
   ignore (List.fold_left aux ([], []) tops)
 %}
 
 %token <string> CPP_CODE
-%token <bool> VBOOL
-%token <char> VCHAR
-%token <int> VINT
-%token <float> VFLOAT
-%token <string> VSTRING
+%token <bool> LITERAL_BOOL
+%token <char> LITERAL_CHAR
+%token <int> LITERAL_INT
+%token <float> LITERAL_FLOAT
+%token <string> LITERAL_STRING
 %token ERROR
 %token ANDAND BARBAR NOT
 %token EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL
@@ -167,6 +167,7 @@ let check_top_shadowing tops =
 %token UNDERSCORE
 %token <string> UIDENT
 %token WITH
+%token HASH_USE
 
 %nonassoc prec_fun prec_let prec_match
 %nonassoc prec_if
@@ -206,6 +207,8 @@ toplevel:
 toplevel_phrase:
   CPP_CODE
     { mk (Top_code $1) }
+| HASH_USE LITERAL_STRING
+    { mk (Top_use $2) }
 | TYPE LIDENT EQUAL type_decl
     { mk_type $2 [] $4 }
 | TYPE type_var LIDENT EQUAL type_decl
@@ -351,11 +354,11 @@ fun_app_expr:
 
 simple_expr:
   LPAREN RPAREN                      { mk (Const Unit) }
-| VBOOL                              { mk (Const (Bool $1)) }
-| VCHAR                              { mk (Const (Char $1)) }
-| VINT                               { mk (Const (Int $1)) }
-| VFLOAT                             { mk (Const (Float $1)) }
-| VSTRING                            { mk_exp_string $1 }
+| LITERAL_BOOL                       { mk (Const (Bool $1)) }
+| LITERAL_CHAR                       { mk (Const (Char $1)) }
+| LITERAL_INT                        { mk (Const (Int $1)) }
+| LITERAL_FLOAT                      { mk (Const (Float $1)) }
+| LITERAL_STRING                     { mk_exp_string $1 }
 | LIDENT                             { mk (Var $1) }
 | LPAREN expr COLON type_expr RPAREN { mk (Constraint ($2, $4)) }
 | LPAREN exprs_comma RPAREN          { mk (Tuple (List.rev $2)) }
@@ -401,10 +404,10 @@ simple_pattern:
   UNDERSCORE                               { mk (Pvar None) }
 | LIDENT                                   { mk (Pvar (Some $1)) }
 | LPAREN RPAREN                            { mk (Pconst Punit) }
-| VBOOL                                    { mk (Pconst (Pbool $1)) }
-| VCHAR                                    { mk (Pconst (Pchar $1)) }
-| VINT                                     { mk (Pconst (Pint $1)) }
-| VSTRING                                  { mk_pat_string $1 }
+| LITERAL_BOOL                             { mk (Pconst (Pbool $1)) }
+| LITERAL_CHAR                             { mk (Pconst (Pchar $1)) }
+| LITERAL_INT                              { mk (Pconst (Pint $1)) }
+| LITERAL_STRING                           { mk_pat_string $1 }
 | UIDENT                                   { mk (Pconstr ($1, [])) }
 | LPAREN tuple_pattern RPAREN              { mk (Ptuple (List.rev $2)) }
 | LBRACKET RBRACKET                        { mk (Pconstr ("[]", [])) }
