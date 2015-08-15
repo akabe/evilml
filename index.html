@@ -4,6 +4,24 @@
     <meta charset="utf8">
     <link rel="stylesheet" href="css/codemirror.css">
     <style text="text/css">
+     a, a:hover, a:visited, a:active {
+       color: #16f;
+       text-decoration: none;
+     }
+     a:hover { text-decoration: underline; }
+     input, input:hover {
+       border-top: 1px solid #ccc;
+       border-left: 1px solid #ccc;
+       border-right: 1px solid #999;
+       border-bottom: 1px solid #999;
+       border-radius: 3px;
+       font-weight: bold;
+       padding: 3px 6px;
+     }
+     input:hover {
+       background: #ccc;
+     }
+
      .line-error { background: yellow; }
      .CodeMirror {
        font-size: 0.85em;
@@ -28,7 +46,29 @@
   </head>
   <body>
     <h1>Evil ML: ML to C++ template language</h1>
-    <p>See <a href="https://github.com/akabe/evilml">https://github.com/akabe/evilml</a> for details.</p>
+    <p><a href="https://travis-ci.org/akabe/evilml" alt="Build Status"><img src="https://travis-ci.org/akabe/evilml.svg"></a></p>
+    <p>
+      Evil ML is a joke compiler from ML to <strong>C++ template language</strong>
+      (not ordinary C++ code). Please, don't use this for practical purposes.
+    </p>
+    <p>
+      C++ template is a <strong>higher-order pure functional</strong> programming language
+      traditionally used for <strong>compile-time</strong> computation, while its syntax is
+      verbose and hard to use.
+      <a href="https://en.wikipedia.org/wiki/ML_%28programming_language%29">ML</a>,
+      a higher-order functional programming language, is simple, practical and
+      easy to understand, so that we jokingly implemented this compiler. You can
+      easily use black magic in C++ template programming. This will give you nightmares.
+    </p>
+    <p>
+      <ul>
+        <li> <a href="http://ocaml.org">OCaml</a>-like higher-order pure functional language
+          (Hindley-Milner polymorphism, no value restriction).</li>
+        <li>Type inference is performed. Most types are automatically inferred.</li>
+        <li>Variant types are supported.</li>
+        <li>You can write raw C++ code in <code>(*! ... *)</code> in top level.</li>
+      </ul>
+      See <a href="https://github.com/akabe/evilml">https://github.com/akabe/evilml</a> for details.</p>
     <div>
       Examples:
       <input type="button" value="Fibonacci" id="btn_ex_fib">
