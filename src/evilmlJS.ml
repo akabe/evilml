@@ -40,6 +40,13 @@ let report_error loc msg =
          Unsafe.inject (loc.EmlLocation.cnum_end);
          Unsafe.inject (string msg); |]
 
+let make_header embed =
+  let hpp_fname = "evilml.hpp" in
+  if embed
+  then sprintf "#line 1 %S\n%s\n#line 1 \"output.cpp\""
+      hpp_fname Evilml_hpp.contents
+  else sprintf "#include %S" hpp_fname
+
 let compile () =
   let embed = to_bool (input "chk_embed")##checked in
   let in_code = editor_get "mlEditor" in
@@ -54,7 +61,7 @@ let compile () =
   begin
     try
       let lexbuf = Lexing.from_string in_code in
-      EmlCompile.run ~hook_typing ~embed "(none)" lexbuf
+      EmlCompile.run ~hook_typing ~header:(make_header embed) "(none)" lexbuf
       |> List.iter (fprintf bf_out.ppf "%a@\n@\n" EmlCpp.pp_decl);
       let tyinf = fetch_buffer_formatter bf_tys |> String.trim in
       let out_code = fetch_buffer_formatter bf_out |> String.trim in

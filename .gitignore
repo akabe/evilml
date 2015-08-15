@@ -23,5 +23,6 @@ _build/
 src/parser.mli
 src/parser.ml
 src/lexer.ml
+src/emlConfig.ml
 src/evilml_hpp.ml
 src/example_*.ml

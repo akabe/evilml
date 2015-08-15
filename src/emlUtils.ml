@@ -165,6 +165,20 @@ let gen_fresh_name prefix =
   let c = ref 0 in
   fun () -> incr c ; prefix ^ string_of_int !c
 
+let read_file fname =
+  let open Buffer in
+  let ic = open_in fname in
+  let b = create 256 in
+  try
+    while true do
+      add_string b (input_line ic);
+      add_char b '\n'
+    done;
+    assert false
+  with End_of_file ->
+    close_in ic;
+    contents b
+
 exception Compile_error of string EmlLocation.loc
 
 let errorf ?(loc = EmlLocation.dummy) fmt =

@@ -47,15 +47,7 @@ let set_lexbuf lexbuf fname =
   lexbuf.lex_curr_p <- { pos_fname = fname; pos_lnum = 1;
                          pos_bol = 0; pos_cnum = 0; }
 
-let make_header in_fname =
-  let hpp_fname = "evilml.hpp" in
-  function
-  | false -> sprintf "#include %S" hpp_fname
-  | true -> sprintf "#line 1 %S\n%s\n#line 1 %S"
-              hpp_fname Evilml_hpp.contents in_fname
-
-let run ?(hook_typing = ignore) ~embed in_fname lexbuf =
-  let header = make_header in_fname embed in
+let run ?(hook_typing = ignore) ~header in_fname lexbuf =
   set_lexbuf lexbuf in_fname;
   lexbuf
   |> EmlParser.main EmlLexer.main (* parsing *)

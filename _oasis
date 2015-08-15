@@ -10,6 +10,7 @@ XStdFilesREADME:         false
 BuildTools:              ocamlbuild
 AlphaFeatures:           ocamlbuild_more_args
 XOCamlbuildPluginTags:   package(js_of_ocaml.ocamlbuild)
+FilesAB:                 src/emlConfig.ml.ab
 
 PreBuildCommand:         ocaml gen_files.ml
 PostBuildCommand:        cp _build/src/evilmlJS.js html/js/evilml.js
