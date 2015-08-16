@@ -39,7 +39,7 @@ and expr_desc =
   | Box of expr
   | Unbox of expr
   | Tag of expr (* Obtain the tag of a data constructor *)
-  | Proj of expr * int (* Projection operator *)
+  | Proj of expr * int * int (* Projection operator *)
 
 and let_expr = let_expr_desc list * expr [@@deriving show]
 and let_expr_desc =
@@ -69,9 +69,9 @@ let rec conv_expr rev_lets { E.data; E.typ; _ } = match data with
   | E.Ext (B.Tag e1) ->
     let (rev_lets', e1') = conv_expr rev_lets e1 in
     (rev_lets', { typ; data = Tag e1'; })
-  | E.Ext (B.Proj (e1, i)) ->
+  | E.Ext (B.Proj (e1, n, i)) ->
     let (rev_lets', e1') = conv_expr rev_lets e1 in
-    (rev_lets', { typ; data = Proj (e1', i); })
+    (rev_lets', { typ; data = Proj (e1', n, i); })
   | E.If (e1, e2, e3) ->
     let (rev_lets', e1') = conv_expr rev_lets e1 in
     let (rev_lets', e2') = conv_expr rev_lets' e2 in

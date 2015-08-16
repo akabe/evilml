@@ -66,6 +66,7 @@ let box_type t =
     | Arrow (args, ret) -> Arrow (List.map conv args, conv ret)
     | Tconstr (name, tl) when name <> "__ml_boxed" ->
       Tconstr (name, List.map conv tl)
+    | Tuple tl -> Tuple (List.map conv tl)
     | _ -> t
   in
   (is_basetype t, conv t)

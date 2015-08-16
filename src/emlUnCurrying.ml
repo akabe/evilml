@@ -50,7 +50,7 @@ let rec conv_app ~loc e_fun e_args =
 let rec conv_expr e = match e.data with
   | Const _ | Var _ | Error -> e
   | Ext (Tag e0) -> { e with data = Ext (Tag (conv_expr e0)) }
-  | Ext (Proj (e0, i)) -> { e with data = Ext (Proj (conv_expr e0, i)) }
+  | Ext (Proj (e0, n, i)) -> { e with data = Ext (Proj (conv_expr e0, n, i)) }
   | Constr (id, el) -> { e with data = Constr (id, List.map conv_expr el) }
   | Tuple el -> { e with data = Tuple (List.map conv_expr el) }
   | Op op -> { e with data = Op (EmlOp.map conv_expr op) }

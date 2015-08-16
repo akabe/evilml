@@ -32,7 +32,7 @@ and expr_desc =
   | Box of expr
   | Unbox of expr
   | Tag of expr (* Obtain the tag of a data constructor *)
-  | Proj of expr * int (* Projection operator *)
+  | Proj of expr * int * int (* Projection operator *)
 
 and let_expr = let_expr_desc list * expr [@@deriving show]
 and let_expr_desc =

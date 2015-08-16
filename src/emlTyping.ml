@@ -37,6 +37,10 @@ and ext_expr =
 
 type top = ext_expr EmlTypedExpr.base_top [@@deriving show]
 
+let constr_tag name n_args =
+  let c = if n_args >= 2 then 2 else n_args in (* c = 0, 1, 2 [2 bits] *)
+  abs ((Hashtbl.hash name) lsl 2) lor c
+
 let rec typing_expr ctx { L.loc; L.data } = match data with
   | S.Error -> mk_exp_error ~loc ()
   | S.Const S.Unit -> mk_exp_unit ~loc ()
@@ -98,13 +102,16 @@ and typing_pattern ctx { L.loc; L.data } = match data with
     let t_pat = EmlType.genvar () in
     let t_constr = EmlType.Arrow (List.map (fun p -> p.typ) pl', t_pat) in
     let ts = EmlType.lookup ~loc id ctx in
+    let tag = constr_tag id (List.length pl) in
     EmlType.unify ~loc t_constr (EmlType.instantiate ts);
-    (ctx', { loc; typ = t_pat; data = Pconstr (Hashtbl.hash id, id, pl'); })
+    (ctx', { loc; typ = t_pat; data = Pconstr (tag, id, pl'); })
 
 let typing ctx =
   let aux ctx { L.loc; L.data } = match data with
     | S.Top_variant_type (name, targs, cs) ->
-      let cs' = List.map (fun (id, cargs) -> (Hashtbl.hash id, id, cargs)) cs in
+      let cs' = List.map
+          (fun (id, cargs) -> (constr_tag id (List.length cargs), id, cargs))
+          cs in
       let tss = typeof_constrs name targs cs' in
       let ctx' = List.map2 (fun (id, _) ts -> (id, ts)) cs tss in
       (ctx' @ ctx, { L.loc; L.data = Top_variant_type (name, targs, cs') })

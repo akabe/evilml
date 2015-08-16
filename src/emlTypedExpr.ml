@@ -67,8 +67,16 @@ let mk_exp_constr_lookup ~loc ctx id el =
               id EmlType.pp_scheme tysc ()
   | Some (u_args, u_ret) ->
     let m, n = List.length t_args, List.length u_args in
-    if m <> n then errorf ~loc "Constructor %s expects %d argument(s) \
-                                but %d argument(s) are applied" id n m ();
+    let t_args, el =
+      if m = n then t_args, el
+      else if n = 1 && m > 1
+      then begin
+        let typ = EmlType.Tuple t_args in
+        ([typ], [{ loc; typ; data = Tuple el; }])
+      end
+      else errorf ~loc "Constructor %s expects %d argument(s) \
+                        but %d argument(s) are applied" id n m ()
+    in
     List.iter2 (EmlType.unify ~loc) u_args t_args;
     EmlType.unify ~loc u_ret t_ret;
     mk_exp_constr ~loc id t_ret el

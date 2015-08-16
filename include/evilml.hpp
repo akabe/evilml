@@ -45,20 +45,28 @@ struct __ml_pair {
 template <class x, class y>
 struct __ml_compare {
 private:
-  template <class, int diff, int>
+  template <int diff, int, int>
   struct aux // x::tag != y::tag
     : public __ml_int<diff> {};
 
-  template <class dummy>
-  struct aux <dummy, 0, -1> // x::tag == y::tag && tag == [boxed val]
+  template <int m>
+  struct aux <0, -1, m> // x::tag == y::tag && tag == [boxed val]
     : public __ml_int<(x::val > y::val ? 1 : (x::val < y::val ? -1 : 0))> {};
 
-  template <class dummy>
-  struct aux <dummy, 0, 0> // x::tag == y::tag && tag == [ret val]
+  template <int m>
+  struct aux <0, 0, m> // x::tag == y::tag && tag == [ret val]
     : public __ml_int<__ml_compare<typename x::type, typename y::type>::val> {};
 
-  template <class dummy, int n>
-  class aux <dummy, 0, n> // x::tag == y::tag && tag == [some constructor]
+  template <int n>
+  struct aux <0, n, 0> // x::tag == y::tag && tag == [nullary constructor]
+    : public __ml_int<0> {};
+
+  template <int n>
+  class aux <0, n, 1> // x::tag == y::tag && tag == [unary constructor]
+    : public __ml_int<__ml_compare<typename x::fst, typename y::fst>::val> {};
+
+  template <int n>
+  class aux <0, n, 2> // x::tag == y::tag && tag == [binary constructor]
   {
   private:
     static const int tmp = __ml_compare<typename x::fst, typename y::fst>::val;
@@ -67,7 +75,7 @@ private:
   };
 public:
   static const int tag = -1;
-  static const int val = aux<void, x::tag - y::tag, x::tag>::val;
+  static const int val = aux<x::tag - y::tag, x::tag, x::tag & 0x3>::val;
 };
 
 template <class x, class y>

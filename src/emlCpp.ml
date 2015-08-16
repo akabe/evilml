@@ -86,10 +86,10 @@ let mk_exp_tuple el = match List.rev el with
   | [] -> assert false
   | last :: rest -> List.fold_left (fun acc ei -> mk_exp_pair ei acc) last rest
 
-let rec mk_exp_proj e = function
-  | 0 -> mk_exp_tmem e member_fst
-  | 1 -> mk_exp_tmem e member_snd
-  | i -> mk_exp_proj (mk_exp_tmem e member_snd) (i - 1)
+let rec mk_exp_proj e n i = match n, i with
+  | _, 0 -> mk_exp_tmem e member_fst
+  | 2, 1 -> mk_exp_tmem e member_snd
+  | _, i -> mk_exp_proj (mk_exp_tmem e member_snd) (n - 1) (i - 1)
 
 let mk_decl_typedef id e = EmlTypedef (id, mk_type_expr e)
 let mk_decl_tag tag =
@@ -121,7 +121,7 @@ let rec conv_expr deps { F.data; _ } = match data with
   | F.Box e0 -> mk_exp_box ~typ:e0.F.typ (conv_expr deps e0)
   | F.Unbox e0 -> mk_exp_unbox (conv_expr deps e0)
   | F.Tag e0 -> mk_exp_vmem (conv_expr deps e0) member_tag
-  | F.Proj (e0, i) -> mk_exp_proj (conv_expr deps e0) i
+  | F.Proj (e0, n, i) -> mk_exp_proj (conv_expr deps e0) n i
 
 and conv_op deps op =
   let aux typ mk id_cmp e1 e2 =
@@ -134,12 +134,18 @@ and conv_op deps op =
     | _ -> mk_exp_vmem (mk_exp_app (mk_exp_var id_cmp) [e1'; e2']) member_val
   in
   match op with
-  | EmlOp.Eq (e1, e2) -> aux e1.F.typ (fun e1 e2 -> EmlOp.Eq (e1, e2)) "__ml_eq" e1 e2
-  | EmlOp.Ne (e1, e2) -> aux e1.F.typ (fun e1 e2 -> EmlOp.Ne (e1, e2)) "__ml_ne" e1 e2
-  | EmlOp.Ge (e1, e2) -> aux e1.F.typ (fun e1 e2 -> EmlOp.Ge (e1, e2)) "__ml_ge" e1 e2
-  | EmlOp.Le (e1, e2) -> aux e1.F.typ (fun e1 e2 -> EmlOp.Le (e1, e2)) "__ml_le" e1 e2
-  | EmlOp.Gt (e1, e2) -> aux e1.F.typ (fun e1 e2 -> EmlOp.Gt (e1, e2)) "__ml_gt" e1 e2
-  | EmlOp.Lt (e1, e2) -> aux e1.F.typ (fun e1 e2 -> EmlOp.Lt (e1, e2)) "__ml_lt" e1 e2
+  | EmlOp.Eq (e1, e2) ->
+    aux e1.F.typ (fun e1 e2 -> EmlOp.Eq (e1, e2)) "__ml_eq" e1 e2
+  | EmlOp.Ne (e1, e2) ->
+    aux e1.F.typ (fun e1 e2 -> EmlOp.Ne (e1, e2)) "__ml_ne" e1 e2
+  | EmlOp.Ge (e1, e2) ->
+    aux e1.F.typ (fun e1 e2 -> EmlOp.Ge (e1, e2)) "__ml_ge" e1 e2
+  | EmlOp.Le (e1, e2) ->
+    aux e1.F.typ (fun e1 e2 -> EmlOp.Le (e1, e2)) "__ml_le" e1 e2
+  | EmlOp.Gt (e1, e2) ->
+    aux e1.F.typ (fun e1 e2 -> EmlOp.Gt (e1, e2)) "__ml_gt" e1 e2
+  | EmlOp.Lt (e1, e2) ->
+    aux e1.F.typ (fun e1 e2 -> EmlOp.Lt (e1, e2)) "__ml_lt" e1 e2
   | op -> mk_exp_op (EmlOp.map (conv_expr deps) op)
 
 and conv_let_expr deps (lets, e) =

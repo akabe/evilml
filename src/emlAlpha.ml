@@ -52,9 +52,9 @@ let rec conv_expr tbl seen e = match e.data with
   | Ext (Tag e0) ->
     let (seen', e0') = conv_expr tbl seen e0 in
     (seen', { e with data = Ext (Tag e0') })
-  | Ext (Proj (e0, i)) ->
+  | Ext (Proj (e0, n, i)) ->
     let (seen', e0') = conv_expr tbl seen e0 in
-    (seen', { e with data = Ext (Proj (e0', i)) })
+    (seen', { e with data = Ext (Proj (e0', n, i)) })
   | Ext (Box e0) ->
     let (seen', e0') = conv_expr tbl seen e0 in
     (seen', { e with data = Ext (Box e0') })
@@ -90,7 +90,7 @@ let rec conv_expr tbl seen e = match e.data with
     let (seen', new_id) = genid seen id in
     let tbl' = (id, new_id) :: tbl in
     let (seen', e1') = if rf then conv_expr tbl' seen' e1
-      else conv_expr tbl seen e1 in
+      else conv_expr tbl seen' e1 in
     let (seen', e2') = conv_expr tbl' seen' e2 in
     (seen', { e with data = Let (rf, new_id, ts, e1', e2') })
 

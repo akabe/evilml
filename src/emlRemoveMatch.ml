@@ -24,11 +24,11 @@ module T = EmlTyping
 type expr = ext_expr base_expr [@@deriving show]
 and ext_expr =
   | Tag of expr (* Obtain the tag of a data constructor *)
-  | Proj of expr * int (* Projection operator *)
+  | Proj of expr * int * int (* Projection operator *)
 
 type top = ext_expr base_top [@@deriving show]
 
-let mk_exp_proj ~loc ~typ e i = { loc; typ; data = Ext (Proj (e, i)); }
+let mk_exp_proj ~loc ~typ e n i = { loc; typ; data = Ext (Proj (e, n, i)); }
 let mk_exp_tag ~loc e = { loc; typ = EmlType.Int; data = Ext (Tag e); }
 let mk_exp_eq ~loc e1 e2 =
   { loc; typ = EmlType.Bool; data = Op (EmlOp.Eq (e1, e2)); }
@@ -55,8 +55,10 @@ let rec conv_pat e e_then e_else p =
     mk_exp_if_eq ~loc (mk_exp_tag ~loc e) (mk_exp_int ~loc tag) e_then' e_else
 
 and conv_pat_list ~loc e e_then e_else pl =
+  let n = List.length pl in
   List.fold_righti
-    (fun i pi acc -> conv_pat (mk_exp_proj ~loc ~typ:pi.typ e i) acc e_else pi)
+    (fun i pi acc ->
+       conv_pat (mk_exp_proj ~loc ~typ:pi.typ e n i) acc e_else pi)
     pl e_then
 
 let rec conv_expr e = match e.data with

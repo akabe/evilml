@@ -114,6 +114,7 @@ rule main = parse
 and comment = parse
   "(*"           { comment lexbuf ; comment lexbuf }
 | "*)"           { () }
+| ['\n' '\r']    { Lexing.new_line lexbuf ; comment lexbuf }
 | eof            { Format.eprintf "Warning: unterminated comment@." }
 | _              { comment lexbuf }
 
@@ -121,6 +122,9 @@ and cpp_code = parse
   "(*"           { Buffer.add_string code_buf (Lexing.lexeme lexbuf) ;
                    cpp_code lexbuf ; cpp_code lexbuf }
 | "*)"           { Buffer.add_string code_buf (Lexing.lexeme lexbuf) }
+| ['\n' '\r']    { Lexing.new_line lexbuf ;
+                   Buffer.add_string code_buf (Lexing.lexeme lexbuf) ;
+                   cpp_code lexbuf }
 | eof            { Format.eprintf "Warning: unterminated C++ code block@." }
 | _              { Buffer.add_string code_buf (Lexing.lexeme lexbuf) ;
                    cpp_code lexbuf }

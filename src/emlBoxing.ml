@@ -26,7 +26,7 @@ and ext_expr =
   | Box of expr
   | Unbox of expr
   | Tag of expr (* Obtain the tag of a data constructor *)
-  | Proj of expr * int (* Projection operator *)
+  | Proj of expr * int * int (* Projection operator *)
 
 type top = ext_expr base_top [@@deriving show]
 
@@ -77,12 +77,13 @@ let rec conv_expr tt ctx e = match e.data with
     { e with data = Let (rf, id, ts', e1', e2'); typ = e2'.typ }
   (* Constructors: all arguments are boxed. *)
   | Constr (id, el) ->
-    { e with data = Constr (id, List.map (conv_expr Boxed ctx) el) }
+    { e with typ = box_unbox_type tt e.typ;
+             data = Constr (id, List.map (conv_expr Boxed ctx) el) }
   (* Projection: obtained elements are boxed. *)
-  | Ext (M.Proj (e0, i)) ->
+  | Ext (M.Proj (e0, n, i)) ->
     let e0' = conv_expr Nothing ctx e0 in
     let (_, typ) = EmlType.box_type e.typ in
-    { e with typ; data = Ext (Proj (e0', i)) }
+    { e with typ; data = Ext (Proj (e0', n, i)) }
     |> box_unbox_expr tt
   (* Tuples: elements of tuples are boxed. *)
   | Tuple el -> mk_exp_tuple ~loc:e.loc (List.map (conv_expr Boxed ctx) el)

@@ -189,7 +189,7 @@ let check_top_shadowing tops =
 
 main:
   toplevel EOF { let tops = List.rev $1 in check_top_shadowing tops ; tops }
-| error        { errorf ~loc:(EmlLocation.from_symbol ()) "EmlSyntax error" () }
+| error        { errorf ~loc:(EmlLocation.from_symbol ()) "syntax error" () }
 
 /*********************************************************************
  * Toplevel

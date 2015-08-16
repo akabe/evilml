@@ -31,9 +31,9 @@ let rec conv_expr fv e = match e.data with
   | Ext (Tag e0) ->
     let (fv', e0') = conv_expr fv e0 in
     (fv', { e with data = Ext (Tag e0') })
-  | Ext (Proj (e0, i)) ->
+  | Ext (Proj (e0, n, i)) ->
     let (fv', e0') = conv_expr fv e0 in
-    (fv', { e with data = Ext (Proj (e0', i)) })
+    (fv', { e with data = Ext (Proj (e0', n, i)) })
   | Tuple el ->
     let (fv', el') = List.fold_map conv_expr fv el in
     (fv', { e with data = Tuple el' })
