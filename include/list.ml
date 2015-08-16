@@ -22,8 +22,15 @@ let list_length = list_foldl (fun n _ -> n + 1) 0
 let list_rev = list_foldl (fun acc x -> x :: acc) []
 let list_append = list_foldr (fun x acc -> x :: acc)
 
+let list_flatten xss = list_foldr list_append xss []
+
 let list_filter f xs =
   list_foldr (fun x acc -> if f x then x :: acc else acc) xs []
+
+let list_filter_map f xs =
+  list_foldr (fun x acc -> match f x with
+      | Some y -> y :: acc
+      | None -> acc) xs []
 
 let list_partition f xs =
   list_foldr (fun x acc -> match acc with

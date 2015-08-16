@@ -93,4 +93,5 @@ let () =
   in
   set_onclick "btn_compile" compile;
   set_onclick "btn_ex_fib" (switch_example Example_fib.contents);
-  set_onclick "btn_ex_qsort" (switch_example Example_qsort.contents)
+  set_onclick "btn_ex_qsort" (switch_example Example_qsort.contents);
+  set_onclick "btn_ex_dijkstra" (switch_example Example_dijkstra.contents)

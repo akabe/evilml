@@ -42,6 +42,7 @@ let make_ml in_file out_file =
 let () =
   make_ml "examples/fib/fib.ml" "src/example_fib.ml";
   make_ml "examples/quicksort/qsort.ml" "src/example_qsort.ml";
+  make_ml "examples/dijkstra/dijkstra.ml" "src/example_dijkstra.ml";
   make_ml "include/evilml.hpp" "src/evilml_hpp.ml";
   let in_mls = Sys.readdir "include"
                |> Array.to_list
