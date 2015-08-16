@@ -37,11 +37,7 @@ and ext_expr =
 
 type top = ext_expr EmlTypedExpr.base_top [@@deriving show]
 
-let constr_tag name n_args =
-  let c = if n_args >= 2 then 2 else n_args in (* c = 0, 1, 2 [2 bits] *)
-  abs ((Hashtbl.hash name) lsl 2) lor c
-
-let rec typing_expr ctx { L.loc; L.data } = match data with
+let rec typing_expr tags ctx { L.loc; L.data } = match data with
   | S.Error -> mk_exp_error ~loc ()
   | S.Const S.Unit -> mk_exp_unit ~loc ()
   | S.Const (S.Bool b) -> mk_exp_bool ~loc b
@@ -49,29 +45,30 @@ let rec typing_expr ctx { L.loc; L.data } = match data with
   | S.Const (S.Int n) -> mk_exp_int ~loc n
   | S.Const (S.Float x) -> mk_exp_float ~loc x
   | S.Var s -> mk_exp_var_lookup ~loc ctx s
-  | S.Constr (s, el) -> List.map (typing_expr ctx) el
+  | S.Constr (s, el) -> List.map (typing_expr tags ctx) el
                         |> mk_exp_constr_lookup ~loc ctx s
-  | S.Tuple el -> mk_exp_tuple ~loc (List.map (typing_expr ctx) el)
-  | S.EmlOp op -> mk_exp_op ~loc (EmlOp.map (typing_expr ctx) op)
+  | S.Tuple el -> mk_exp_tuple ~loc (List.map (typing_expr tags ctx) el)
+  | S.EmlOp op -> mk_exp_op ~loc (EmlOp.map (typing_expr tags ctx) op)
   | S.If (e1, e2, e3) ->
-    mk_exp_if ~loc
-      (typing_expr ctx e1) (typing_expr ctx e2) (typing_expr ctx e3)
+    mk_exp_if ~loc (typing_expr tags ctx e1)
+      (typing_expr tags ctx e2) (typing_expr tags ctx e3)
   | S.App (e_fun, e_args) ->
-    mk_exp_app ~loc (typing_expr ctx e_fun) (List.map (typing_expr ctx) e_args)
-  | S.Abs (args, e_body) -> mk_exp_abs ~loc ctx typing_expr args e_body
-  | S.Let (rf, id, e1, e2) -> mk_exp_let ~loc ctx typing_expr rf id e1 e2
+    mk_exp_app ~loc (typing_expr tags ctx e_fun)
+      (List.map (typing_expr tags ctx) e_args)
+  | S.Abs (args, e_body) -> mk_exp_abs ~loc ctx (typing_expr tags) args e_body
+  | S.Let (rf, id, e1, e2) -> mk_exp_let ~loc ctx (typing_expr tags) rf id e1 e2
   | S.Constraint (e, t) ->
-    let e' = typing_expr ctx e in
+    let e' = typing_expr tags ctx e in
     EmlType.unify ~loc e'.typ t;
     { loc; typ = t; data = Ext (Constraint (e', t)); }
-  | S.Match (e0, cases) -> typing_match ~loc ctx e0 cases
+  | S.Match (e0, cases) -> typing_match ~loc tags ctx e0 cases
 
-and typing_match ~loc ctx e0 cases =
-  let e0' = typing_expr ctx e0 in
+and typing_match ~loc tags ctx e0 cases =
+  let e0' = typing_expr tags ctx e0 in
   let (t_in, t_out) = (e0'.typ, EmlType.genvar ()) in
   let typing_case (pi, ei) =
-    let (ctx', pi') = typing_pattern ctx pi in
-    let ei' = typing_expr ctx' ei in
+    let (ctx', pi') = typing_pattern tags ctx pi in
+    let ei' = typing_expr tags ctx' ei in
     EmlType.unify ~loc pi'.typ t_in;
     EmlType.unify ~loc ei'.typ t_out;
     (pi', ei')
@@ -79,7 +76,7 @@ and typing_match ~loc ctx e0 cases =
   let cases' = List.map typing_case cases in
   { loc; typ = t_out; data = Ext (Match (e0', cases')); }
 
-and typing_pattern ctx { L.loc; L.data } = match data with
+and typing_pattern tags ctx { L.loc; L.data } = match data with
   | S.Pconst S.Punit ->
     (ctx, { loc; typ = EmlType.Unit; data = Pconst S.Punit; })
   | S.Pconst (S.Pbool b) ->
@@ -94,31 +91,40 @@ and typing_pattern ctx { L.loc; L.data } = match data with
     let typ = EmlType.genvar () in
     ((id, EmlType.scheme typ) :: ctx, { loc; typ; data = Pvar (Some id); })
   | S.Ptuple pl ->
-    let (ctx', pl') = List.fold_map typing_pattern ctx pl in
+    let (ctx', pl') = List.fold_map (typing_pattern tags) ctx pl in
     let typ = EmlType.Tuple (List.map (fun p -> p.typ) pl') in
     (ctx', { loc; typ; data = Ptuple pl'; })
   | S.Pconstr (id, pl) ->
-    let (ctx', pl') = List.fold_map typing_pattern ctx pl in
+    let (ctx', pl') = List.fold_map (typing_pattern tags) ctx pl in
     let t_pat = EmlType.genvar () in
     let t_constr = EmlType.Arrow (List.map (fun p -> p.typ) pl', t_pat) in
     let ts = EmlType.lookup ~loc id ctx in
-    let tag = constr_tag id (List.length pl) in
+    let tag = List.assoc id tags in
     EmlType.unify ~loc t_constr (EmlType.instantiate ts);
     (ctx', { loc; typ = t_pat; data = Pconstr (tag, id, pl'); })
 
+let make_tags constrs =
+  List.mapi (fun i (id, cargs) ->
+      let n = List.length cargs in (* # of arguments *)
+      let m = if n >= 2 then 2 else n in (* m = 0, 1, 2 [2 bits] *)
+      let tag = ((i + 1) lsl 2) lor m in
+      (id, tag))
+    constrs
+
 let typing ctx =
-  let aux ctx { L.loc; L.data } = match data with
+  let aux (tags, ctx) { L.loc; L.data } = match data with
     | S.Top_variant_type (name, targs, cs) ->
-      let cs' = List.map
-          (fun (id, cargs) -> (constr_tag id (List.length cargs), id, cargs))
-          cs in
+      let tags' = make_tags cs in
+      let cs' = List.map2
+          (fun (id, cargs) (_, tag) -> (tag, id, cargs)) cs tags' in
       let tss = typeof_constrs name targs cs' in
       let ctx' = List.map2 (fun (id, _) ts -> (id, ts)) cs tss in
-      (ctx' @ ctx, { L.loc; L.data = Top_variant_type (name, targs, cs') })
+      ((tags' @ tags, ctx' @ ctx),
+       { L.loc; L.data = Top_variant_type (name, targs, cs') })
     | S.Top_let (rf, id, e1) ->
-      let (ts, e1') = mk_exp_let_rhs ~loc ctx typing_expr rf id e1 in
-      ((id, ts) :: ctx, { L.loc; L.data = Top_let (rf, id, ts, e1') })
-    | S.Top_code s -> (ctx, { L.loc; L.data = Top_code s; })
+      let (ts, e1') = mk_exp_let_rhs ~loc ctx (typing_expr tags) rf id e1 in
+      ((tags, (id, ts) :: ctx), { L.loc; L.data = Top_let (rf, id, ts, e1') })
+    | S.Top_code s -> ((tags, ctx), { L.loc; L.data = Top_code s; })
     | S.Top_use _ -> failwith "Typing.typing: Syntax.Top_use remains"
   in
-  List.fold_map aux ctx >> snd
+  List.fold_map aux ([], ctx) >> snd
