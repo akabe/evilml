@@ -18,3 +18,8 @@ echo "Checking dijkstra.ml ..."
 $EVILML dijkstra.ml
 g++ dijkstra.cpp -o dijkstra.out
 ./dijkstra.out
+
+echo "Checking tsort.ml ..."
+$EVILML tsort.ml
+g++ tsort.cpp -o tsort.out
+./tsort.out

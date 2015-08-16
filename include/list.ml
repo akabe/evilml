@@ -46,3 +46,11 @@ let list_mem x xs = list_find (fun y -> x = y) xs <> None
 let rec list_assoc x xs = match xs with
   | [] -> None
   | (y, z) :: xs -> if x = y then Some z else list_assoc x xs
+
+let rec list_for_all f xs = match xs with
+  | [] -> true
+  | x :: xs -> if f x then list_for_all f xs else false
+
+let rec list_exists f xs = match xs with
+  | [] -> false
+  | x :: xs -> if f x then true else list_exists f xs
