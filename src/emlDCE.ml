@@ -58,8 +58,8 @@ let rec conv_expr fv e = match e.data with
     let (fv2, e2') = conv_expr StringSet.empty e2 in
     if StringSet.mem id fv2
     then begin
-      let (fv', e1') = conv_expr_let_rhs (StringSet.union fv fv2) id e1 in
-      (fv', { e with data = Let (rf, id, ts, e1', e2') })
+      let (fv12, e1') = conv_expr_let_rhs fv2 id e1 in
+      (StringSet.union fv fv12, { e with data = Let (rf, id, ts, e1', e2') })
     end else begin
       eprintf "DCE: local variable `%s' is eliminated.@." id;
       (StringSet.union fv fv2, e2')
