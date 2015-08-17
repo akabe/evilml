@@ -171,8 +171,9 @@ let check_top_shadowing tops =
 
 %nonassoc prec_fun prec_let prec_match
 %nonassoc prec_if
+%nonassoc prec_tuple
+%left COMMA
 %right ARROW
-%nonassoc COMMA
 %left BAR
 %right BARBAR
 %right ANDAND
@@ -335,6 +336,11 @@ expr:
 | MINUSDOT expr %prec prec_unary_minus { mk (EmlOp (EmlOp.FNeg $2)) }
 | PLUS expr     %prec prec_unary_plus  { mk_exp_unary_plus $2 }
 | MINUS expr    %prec prec_unary_minus { mk_exp_unary_minus $2 }
+| tuple_expr    %prec prec_tuple       { mk (Tuple (List.rev $1)) }
+
+tuple_expr:
+  expr COMMA expr       { [$3; $1] }
+| tuple_expr COMMA expr { $3 :: $1 }
 
 app_expr:
   UIDENT             { mk (Constr ($1, [])) }
@@ -361,16 +367,11 @@ simple_expr:
 | LITERAL_STRING                     { mk_exp_string $1 }
 | LIDENT                             { mk (Var $1) }
 | LPAREN expr COLON type_expr RPAREN { mk (Constraint ($2, $4)) }
-| LPAREN exprs_comma RPAREN          { mk (Tuple (List.rev $2)) }
 | LBRACKET RBRACKET                  { mk (Constr ("[]", [])) }
 | LBRACKET exprs_semi RBRACKET       { mk_exp_list $2 }
 | ERROR                              { mk Error }
 | LPAREN expr RPAREN                 { $2 }
 | BEGIN expr END                     { $2 }
-
-exprs_comma:
-  expr COMMA expr        { [$3; $1] }
-| exprs_comma COMMA expr { $3 :: $1 }
 
 exprs_semi:
   expr                      { [$1] }
@@ -399,6 +400,9 @@ pattern:
 | UIDENT simple_pattern
     { let args = match $2.data with Ptuple l -> l | _ -> [$2] in
       mk (Pconstr ($1, args)) }
+| tuple_pattern
+  %prec prec_tuple
+    { mk (Ptuple (List.rev $1)) }
 
 simple_pattern:
   UNDERSCORE                               { mk (Pvar None) }
@@ -409,7 +413,6 @@ simple_pattern:
 | LITERAL_INT                              { mk (Pconst (Pint $1)) }
 | LITERAL_STRING                           { mk_pat_string $1 }
 | UIDENT                                   { mk (Pconstr ($1, [])) }
-| LPAREN tuple_pattern RPAREN              { mk (Ptuple (List.rev $2)) }
 | LBRACKET RBRACKET                        { mk (Pconstr ("[]", [])) }
 | simple_pattern COLONCOLON simple_pattern { mk (Pconstr ("::", [$1; $3])) }
 | LBRACKET list_pattern RBRACKET           { mk_pat_list $2 }
