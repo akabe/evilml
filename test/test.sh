@@ -23,3 +23,8 @@ echo "Checking tsort.ml ..."
 $EVILML tsort.ml
 g++ tsort.cpp -o tsort.out
 ./tsort.out
+
+echo "Checking base64.ml ..."
+$EVILML base64.ml
+g++ base64.cpp -o base64.out
+./base64.out

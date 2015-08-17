@@ -95,4 +95,5 @@ let () =
   set_onclick "btn_ex_fib" (switch_example Example_fib.contents);
   set_onclick "btn_ex_qsort" (switch_example Example_qsort.contents);
   set_onclick "btn_ex_tsort" (switch_example Example_tsort.contents);
-  set_onclick "btn_ex_dijkstra" (switch_example Example_dijkstra.contents)
+  set_onclick "btn_ex_dijkstra" (switch_example Example_dijkstra.contents);
+  set_onclick "btn_ex_base64" (switch_example Example_base64.contents)

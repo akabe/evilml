@@ -44,6 +44,7 @@ let () =
   make_ml "examples/quicksort/qsort.ml" "src/example_qsort.ml";
   make_ml "examples/topological_sort/tsort.ml" "src/example_tsort.ml";
   make_ml "examples/dijkstra/dijkstra.ml" "src/example_dijkstra.ml";
+  make_ml "examples/base64/base64.ml" "src/example_base64.ml";
   make_ml "include/evilml.hpp" "src/evilml_hpp.ml";
   let in_mls = Sys.readdir "include"
                |> Array.to_list
