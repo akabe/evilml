@@ -45,12 +45,10 @@ let rec observe = function
 let name_of_int n =
   let chrs = "abcdefghijklmnopqrstuvwxyz" in
   let m = String.length chrs in
-  let b = Buffer.create 2 in
-  let rec aux n =
-    if n > 0 then begin Buffer.add_char b chrs.[n mod m] ; aux (n / m) end
-    else Buffer.contents b
+  let rec aux s n =
+    if n < 0 then s else aux (Char.escaped chrs.[n mod m] ^ s) (n / m - 1)
   in
-  if n = 0 then "a" else aux n
+  aux "" n
 
 let is_basetype t = match observe t with
   | Bool | Char | Int | Float -> true
