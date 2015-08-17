@@ -27,8 +27,8 @@ let builtin_ctx =
     "pred", EmlType.Arrow ([EmlType.Int], EmlType.Int);
     "min", EmlType.Arrow ([EmlType.Int; EmlType.Int], EmlType.Int);
     "max", EmlType.Arrow ([EmlType.Int; EmlType.Int], EmlType.Int);
-    "int_of_char", EmlType.Arrow ([EmlType.Int], EmlType.Char);
-    "char_of_int", EmlType.Arrow ([EmlType.Char], EmlType.Int);
+    "char_of_int", EmlType.Arrow ([EmlType.Int], EmlType.Char);
+    "int_of_char", EmlType.Arrow ([EmlType.Char], EmlType.Int);
   ]
   |> List.map (fun (id, t) -> (id, EmlType.scheme t))
 

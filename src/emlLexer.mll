@@ -33,6 +33,13 @@ let () = List.iter (fun (kwd, tok) -> Hashtbl.add keyword_table kwd tok)
     "int", INT;
     "float", FLOAT;
     "mod", MOD;
+    "land", LAND;
+    "lor", LOR;
+    "lxor", LXOR;
+    "lnot", LNOT;
+    "lsl", LSL;
+    "lsr", LSR;
+    "asr", ASR;
     "error", ERROR;
   ]
 
@@ -53,13 +60,13 @@ let get_quoted lexbuf =
 }
 
 let digit = [ '0'-'9' ]
-let odigit = [ '0'-'9' ]
-let xdigit = [ '0'-'9' ]
+let odigit = [ '0'-'7' ]
+let xdigit = [ '0'-'9' 'a'-'f' 'A'-'F' ]
 let upper = [ 'A'-'Z' ]
 let lower = [ 'a'-'z' ]
 let sign = [ '+' '-' ]
 
-let int_literal = digit+
+let int_literal = digit+ | "0x" xdigit+
 let float_literal = digit+ ('.' digit*)? (['e' 'E'] sign? digit+)?
 let char_literal = '\'' ([^ '\\' '\''] | '\\' _
                         | '\\' odigit odigit odigit

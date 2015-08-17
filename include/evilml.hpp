@@ -103,7 +103,8 @@ class __ml_array_of_list {
 private:
   template <class, bool>
   struct aux { // __ml_nil
-    static inline void set (T *) {
+    static inline void set (T * p) {
+      *p = '\0';
       return;
     }
   };
@@ -117,7 +118,7 @@ private:
   };
 public:
   static inline void set (T * p) {
-    aux<void, x::tag == 478463344>::set(p);
+    aux<void, x::tag == 10>::set(p);
     return;
   }
 };
@@ -155,14 +156,14 @@ struct __ml_max {
 struct __ml_int_of_char {
   template <class x>
   struct fun {
-    typedef __ml_char<x::val> type;
+    typedef __ml_int<(unsigned char) x::val> type;
   };
 };
 
 struct __ml_char_of_int {
   template <class x>
   struct fun {
-    typedef __ml_int<x::val> type;
+    typedef __ml_char<x::val> type;
   };
 };
 

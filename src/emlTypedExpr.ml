@@ -101,11 +101,13 @@ let mk_exp_op ~loc op =
       EmlType.unify ~loc:e2.loc e2.typ EmlType.Bool;
       EmlType.Bool
     (* integer operators *)
-    | EmlOp.Pos e1 | EmlOp.Neg e1 ->
+    | EmlOp.Pos e1 | EmlOp.Neg e1 | EmlOp.Lnot e1 ->
       EmlType.unify ~loc:e1.loc e1.typ EmlType.Int;
       EmlType.Int
     | EmlOp.Add (e1, e2) | EmlOp.Sub (e1, e2) | EmlOp.Mul (e1, e2)
-    | EmlOp.Div (e1, e2) | EmlOp.Mod (e1, e2) ->
+    | EmlOp.Div (e1, e2) | EmlOp.Mod (e1, e2) | EmlOp.Land (e1, e2)
+    | EmlOp.Lor (e1, e2) | EmlOp.Lxor (e1, e2) | EmlOp.Lsl (e1, e2)
+    | EmlOp.Lsr (e1, e2) | EmlOp.Asr (e1, e2) ->
       EmlType.unify ~loc:e1.loc e1.typ EmlType.Int;
       EmlType.unify ~loc:e2.loc e2.typ EmlType.Int;
       EmlType.Int

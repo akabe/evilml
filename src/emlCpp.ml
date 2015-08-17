@@ -219,7 +219,7 @@ let pp_template_arg ppf = function
 let rec pp_expr ppf e = match e.data with
   | Error | Const EmlSyntax.Unit -> pp_print_string ppf "void"
   | Const (EmlSyntax.Bool b) -> pp_print_bool ppf b
-  | Const (EmlSyntax.Char c) -> fprintf ppf "%C" c
+  | Const (EmlSyntax.Char c) -> fprintf ppf "%d" (int_of_char c)
   | Const (EmlSyntax.Int n) -> pp_print_int ppf n
   | Const (EmlSyntax.Float x) -> pp_print_float ppf x
   | Var id -> pp_print_string ppf id
@@ -247,6 +247,16 @@ let rec pp_expr ppf e = match e.data with
   | Op (EmlOp.Gt(e1,e2)) -> fprintf ppf "(@[%a@ > %a@])" pp_expr e1 pp_expr e2
   | Op (EmlOp.Le(e1,e2)) -> fprintf ppf "(@[%a@ <= %a@])" pp_expr e1 pp_expr e2
   | Op (EmlOp.Ge(e1,e2)) -> fprintf ppf "(@[%a@ >= %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Lnot e1) -> fprintf ppf "(@[~ %a@])" pp_expr e1
+  | Op (EmlOp.Land(e1,e2)) -> fprintf ppf "(@[%a@ & %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Lor(e1,e2)) -> fprintf ppf "(@[%a@ | %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Lxor(e1,e2)) -> fprintf ppf "(@[%a@ ^ %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Lsl(e1,e2)) ->
+    fprintf ppf "(@[(unsigned int)@ %a@ << %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Lsr(e1,e2)) ->
+    fprintf ppf "(@[(unsigned int)@ %a@ >> %a@])" pp_expr e1 pp_expr e2
+  | Op (EmlOp.Asr(e1,e2)) ->
+    fprintf ppf "(@[(signed int)@ %a@ >> %a@])" pp_expr e1 pp_expr e2
   | App (e0, el) ->
     let sp = match List.last el with
       | (_, { data = App _; _ }) -> " "

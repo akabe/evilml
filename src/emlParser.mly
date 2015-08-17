@@ -138,6 +138,7 @@ let check_top_shadowing tops =
 %token <string> LITERAL_STRING
 %token ERROR
 %token ANDAND BARBAR NOT
+%token LAND LOR LXOR LNOT LSL LSR ASR
 %token EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL
 %token PLUS MINUS STAR SLASH MOD PLUSDOT MINUSDOT STARDOT SLASHDOT
 %token UNIT BOOL CHAR INT FLOAT ARROW
@@ -180,8 +181,9 @@ let check_top_shadowing tops =
 %left EQUAL LESS GREATER LESS_GREATER LESS_EQUAL GREATER_EQUAL
 %right COLONCOLON SEMICOLON
 %left PLUS MINUS PLUSDOT MINUSDOT
-%left STAR STARDOT SLASH SLASHDOT MOD
-%nonassoc NOT prec_unary_plus prec_unary_minus
+%left STAR STARDOT SLASH SLASHDOT MOD LAND LOR LXOR
+%right LSL LSR ASR
+%nonassoc NOT LNOT prec_unary_plus prec_unary_minus
 %left prec_app
 
 %start main
@@ -331,7 +333,14 @@ expr:
 | expr MINUSDOT expr                   { mk (EmlOp (EmlOp.FSub ($1, $3))) }
 | expr STARDOT expr                    { mk (EmlOp (EmlOp.FMul ($1, $3))) }
 | expr SLASHDOT expr                   { mk (EmlOp (EmlOp.FDiv ($1, $3))) }
+| expr LAND expr                       { mk (EmlOp (EmlOp.Land ($1, $3))) }
+| expr LOR expr                        { mk (EmlOp (EmlOp.Lor ($1, $3))) }
+| expr LXOR expr                       { mk (EmlOp (EmlOp.Lxor ($1, $3))) }
+| expr LSL expr                        { mk (EmlOp (EmlOp.Lsl ($1, $3))) }
+| expr LSR expr                        { mk (EmlOp (EmlOp.Lsr ($1, $3))) }
+| expr ASR expr                        { mk (EmlOp (EmlOp.Asr ($1, $3))) }
 | NOT expr                             { mk (EmlOp (EmlOp.Not $2)) }
+| LNOT expr                            { mk (EmlOp (EmlOp.Lnot $2)) }
 | PLUSDOT expr  %prec prec_unary_plus  { mk (EmlOp (EmlOp.FPos $2)) }
 | MINUSDOT expr %prec prec_unary_minus { mk (EmlOp (EmlOp.FNeg $2)) }
 | PLUS expr     %prec prec_unary_plus  { mk_exp_unary_plus $2 }
