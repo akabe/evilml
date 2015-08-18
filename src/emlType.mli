@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-type type_var = int
+type type_var
 
 type t =
   | Unit
@@ -29,6 +29,10 @@ type t =
   | Var of string option * type_var
   | Ref of t ref (* for destructive unification *)
 
+(** {2 Sets of type variables} *)
+
+module VarSet : Set.S with type elt = type_var
+
 (** {2 Types} *)
 
 val genvar : ?name:string -> unit -> t
@@ -39,6 +43,9 @@ val unarrow : t -> (t list * t) option
 val box_type : t -> bool * t
 val unbox_type : t -> bool * t
 
+(** Returns a set of free type variables in a given type. *)
+val fv_in_type : t -> VarSet.t
+
 val unify : loc:EmlLocation.t -> t -> t -> unit
 
 val pp : Format.formatter -> t -> unit
@@ -47,16 +54,22 @@ val pp : Format.formatter -> t -> unit
 
 type scheme
 
-type context = (string * scheme) list
-
+(** [scheme t] converts type [t] into a type scheme with no generalization,
+    i.e., no type variables are for-all bound. *)
 val scheme : t -> scheme
-val box_scheme : scheme -> bool * scheme
-val unbox_scheme : scheme -> bool * scheme
-val generalize : context -> t -> scheme
+
+(** [generalize set t] generalizes type [t] into a type scheme by substituting
+    type variables in [set] for fresh variables. *)
+val generalize : VarSet.t -> t -> scheme
+
+(** [instantiate ts] instantiates for-all bound type variables in type scheme
+    [ts]. *)
 val instantiate : scheme -> t
 
+(** Returns a set of free type variables in a given type scheme. *)
+val fv_in_scheme : scheme -> VarSet.t
+
+val box_scheme : scheme -> bool * scheme
+val unbox_scheme : scheme -> bool * scheme
+
 val pp_scheme : Format.formatter -> scheme -> unit
-
-(** {2 Typing contexts} *)
-
-val lookup : loc:EmlLocation.t -> string -> context -> scheme

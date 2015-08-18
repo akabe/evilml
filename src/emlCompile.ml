@@ -30,7 +30,9 @@ let builtin_ctx =
     "char_of_int", EmlType.Arrow ([EmlType.Int], EmlType.Char);
     "int_of_char", EmlType.Arrow ([EmlType.Char], EmlType.Int);
   ]
-  |> List.map (fun (id, t) -> (id, EmlType.scheme t))
+  |> List.fold_left
+    (fun ctx (id, t) -> EmlContext.add_var id (EmlType.scheme t) ctx)
+    EmlContext.empty
 
 (** Build-in functions and their real names *)
 let builtin_tbl =

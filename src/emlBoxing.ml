@@ -65,7 +65,7 @@ let rec conv_expr tt ctx e = match e.data with
   | Var id ->
     let typ = (*try EmlType.instantiate (List.assoc id ctx)
                 with Not_found -> e.typ*)
-      EmlType.instantiate (EmlType.lookup ~loc:e.loc id ctx) in
+      EmlType.instantiate (EmlContext.lookup ~loc:e.loc id ctx) in
     box_unbox_expr tt { e with data = Var id; typ }
   | Error -> (* box/unbox is not needed since Error has forall 'a. 'a. *)
     { e with data = Error; typ = box_unbox_type tt e.typ; }
@@ -73,7 +73,7 @@ let rec conv_expr tt ctx e = match e.data with
     box_unbox_expr tt { e with data = Ext (Tag (conv_expr Nothing ctx e0)) }
   | Let (rf, id, ts, e1, e2) ->
     let (ts', e1') = conv_let_rhs ctx rf id ts e1 in
-    let e2' = conv_expr tt ((id, ts') :: ctx) e2 in
+    let e2' = conv_expr tt (EmlContext.add_var id ts' ctx) e2 in
     { e with data = Let (rf, id, ts', e1', e2'); typ = e2'.typ }
   (* Constructors: all arguments are boxed. *)
   | Constr (id, el) ->
@@ -101,9 +101,7 @@ let rec conv_expr tt ctx e = match e.data with
     let t_args = match EmlType.unarrow e.typ with
       | None -> assert false
       | Some (t_args, _) -> List.map (EmlType.box_type >> snd) t_args in
-    let ctx' = List.fold_left2 (fun acc t -> function
-        | Some x -> (x, EmlType.scheme t) :: acc
-        | None -> acc) ctx t_args args in
+    let ctx' = EmlContext.add_args args t_args ctx in
     let e0' = conv_expr Boxed ctx' e0 in
     let t_fun = EmlType.Arrow (t_args, e0'.typ) in
     { loc = e.loc; typ = t_fun; data = Abs (args, e0'); }
@@ -114,7 +112,7 @@ let rec conv_expr tt ctx e = match e.data with
 
 and conv_let_rhs ctx rf id ts e =
   let ts' = box_unbox_scheme Boxed ts in
-  let ctx' = if rf then (id, ts') :: ctx else ctx in
+  let ctx' = if rf then EmlContext.add_var id ts' ctx else ctx in
   let e' = conv_expr Boxed ctx' e in
   (ts', e')
 
@@ -125,11 +123,13 @@ let convert ctx tops =
   let f_vtype _ ctx name args constrs =
     let constrs' = List.map conv_constr constrs in
     let tss = typeof_constrs name args constrs' in
-    let ctx' = List.rev_map2 (fun (_, id, _) ts -> (id, ts)) constrs' tss in
-    (ctx' @ ctx, Top_variant_type (name, args, constrs'))
+    let ctx' = List.fold_left2
+        (fun acc (_, id, _) ts -> EmlContext.add_var id ts ctx)
+        ctx constrs' tss in
+    (ctx', Top_variant_type (name, args, constrs')) (* TODO *)
   in
   let f_let _ ctx rf id ts e =
     let (ts', e') = conv_let_rhs ctx rf id ts e in
-    ((id, ts') :: ctx, Top_let (rf, id, ts', e'))
+    (EmlContext.add_var id ts' ctx, Top_let (rf, id, ts', e'))
   in
   snd (fold_map f_vtype f_let ctx tops)

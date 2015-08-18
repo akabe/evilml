@@ -30,4 +30,4 @@ and ext_expr =
 
 type top = ext_expr EmlTypedExpr.base_top [@@deriving show]
 
-val typing : EmlType.context -> EmlSyntax.top list -> top list
+val typing : EmlContext.t -> EmlSyntax.top list -> top list

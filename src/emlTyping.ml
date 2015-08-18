@@ -89,7 +89,8 @@ and typing_pattern tags ctx { L.loc; L.data } = match data with
     (ctx, { loc; typ = EmlType.genvar (); data = Pvar None; })
   | S.Pvar (Some id) ->
     let typ = EmlType.genvar () in
-    ((id, EmlType.scheme typ) :: ctx, { loc; typ; data = Pvar (Some id); })
+    (EmlContext.add_var id (EmlType.scheme typ) ctx,
+     { loc; typ; data = Pvar (Some id); })
   | S.Ptuple pl ->
     let (ctx', pl') = List.fold_map (typing_pattern tags) ctx pl in
     let typ = EmlType.Tuple (List.map (fun p -> p.typ) pl') in
@@ -98,7 +99,7 @@ and typing_pattern tags ctx { L.loc; L.data } = match data with
     let (ctx', pl') = List.fold_map (typing_pattern tags) ctx pl in
     let t_pat = EmlType.genvar () in
     let t_constr = EmlType.Arrow (List.map (fun p -> p.typ) pl', t_pat) in
-    let ts = EmlType.lookup ~loc id ctx in
+    let ts = EmlContext.lookup ~loc id ctx in
     let tag = List.assoc id tags in
     EmlType.unify ~loc t_constr (EmlType.instantiate ts);
     (ctx', { loc; typ = t_pat; data = Pconstr (tag, id, pl'); })
@@ -118,12 +119,14 @@ let typing ctx =
       let cs' = List.map2
           (fun (id, cargs) (_, tag) -> (tag, id, cargs)) cs tags' in
       let tss = typeof_constrs name targs cs' in
-      let ctx' = List.map2 (fun (id, _) ts -> (id, ts)) cs tss in
-      ((tags' @ tags, ctx' @ ctx),
+      let ctx' = List.fold_left2
+          (fun ctx (id, _) ts -> EmlContext.add_var id ts ctx) ctx cs tss in
+      ((tags' @ tags, ctx'),
        { L.loc; L.data = Top_variant_type (name, targs, cs') })
     | S.Top_let (rf, id, e1) ->
       let (ts, e1') = mk_exp_let_rhs ~loc ctx (typing_expr tags) rf id e1 in
-      ((tags, (id, ts) :: ctx), { L.loc; L.data = Top_let (rf, id, ts, e1') })
+      ((tags, EmlContext.add_var id ts ctx),
+       { L.loc; L.data = Top_let (rf, id, ts, e1') })
     | S.Top_code s -> ((tags, ctx), { L.loc; L.data = Top_code s; })
     | S.Top_use _ -> failwith "Typing.typing: Syntax.Top_use remains"
   in

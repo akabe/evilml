@@ -15,16 +15,16 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-type expr = ext_expr EmlTypedExpr.base_expr [@@deriving show]
-and ext_expr =
-  | Box of expr
-  | Unbox of expr
-  | Tag of expr (* Obtain the tag of a data constructor *)
-  | Proj of expr * int * int (* Projection operator *)
+type t
 
-type top = ext_expr EmlTypedExpr.base_top [@@deriving show]
+val empty : t
 
-val convert :
-  EmlContext.t ->
-  EmlRemoveMatch.top list ->
-  top list
+val add_var : string -> EmlType.scheme -> t -> t
+
+val add_args : string option list -> EmlType.t list -> t -> t
+
+val lookup : loc:EmlLocation.t -> string -> t -> EmlType.scheme
+
+val fv_in_context : t -> EmlType.VarSet.t
+
+val generalize_type : t -> EmlType.t -> EmlType.scheme

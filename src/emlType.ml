@@ -32,6 +32,13 @@ type t =
   | Var of string option * type_var
   | Ref of t ref (* for destructive unification *)
 
+(** {2 Sets of type variables} *)
+
+module VarSet = Set.Make(struct
+    type t = type_var
+    let compare = Pervasives.compare
+  end)
+
 (** {2 Types} *)
 
 let genvar =
@@ -72,6 +79,17 @@ let box_type t =
 let unbox_type t = match observe t with
   | Tconstr ("__ml_boxed", [t']) -> (true, t')
   | _ -> (false, t)
+
+let fv_in_type =
+  let rec aux acc t = match observe t with
+    | Ref _ -> assert false
+    | Unit | Bool | Char | Int | Float -> acc
+    | Var (_, i) -> VarSet.add i acc
+    | Tuple tl -> List.fold_left aux acc tl
+    | Tconstr (_, tl) -> List.fold_left aux acc tl
+    | Arrow (args, ret) -> List.fold_left aux (aux acc ret) args
+  in
+  aux VarSet.empty
 
 let get_var_name =
   let tbl = ref [] in
@@ -157,16 +175,31 @@ let unify ~loc t0 u0 =
 
 (** {2 Type scheme} *)
 
-module VarsSet = Set.Make(struct
-    type t = type_var
-    let compare = Pervasives.compare
-  end)
-
-type scheme = VarsSet.t * t
+type scheme = VarSet.t * t
 
 type context = (string * scheme) list
 
-let scheme t = (VarsSet.empty, t)
+let scheme t = (VarSet.empty, t)
+
+let generalize vars t0 =
+  let tbl = List.map (fun i -> (i, genvar ())) (VarSet.elements vars) in
+  let rec aux t = match observe t with
+    | Ref _ -> assert false
+    | Unit | Bool | Char | Int | Float -> t
+    | Var (_, i) -> if VarSet.mem i vars then List.assoc i tbl else t
+    | Tuple tl -> Tuple (List.map aux tl)
+    | Tconstr (s, tl) -> Tconstr (s, List.map aux tl)
+    | Arrow (args, ret) -> Arrow (List.map aux args, aux ret)
+  in
+  let var_num (_, t) = match observe t with
+    | Var (_, i) -> i
+    | _ -> assert false
+  in
+  (VarSet.of_list (List.map var_num tbl), aux t0)
+
+let instantiate (vars, t) = generalize vars t |> snd
+
+let fv_in_scheme (bv, t) = VarSet.diff (fv_in_type t) bv
 
 let box_scheme (vars, t) =
   let (need, t') = box_type t in
@@ -176,58 +209,8 @@ let unbox_scheme (vars, t) =
   let (need, t') = unbox_type t in
   (need, (vars, t'))
 
-let free_vars_in_type =
-  let rec aux acc t = match observe t with
-    | Ref _ -> assert false
-    | Unit | Bool | Char | Int | Float -> acc
-    | Var (_, i) -> VarsSet.add i acc
-    | Tuple tl -> List.fold_left aux acc tl
-    | Tconstr (_, tl) -> List.fold_left aux acc tl
-    | Arrow (args, ret) -> List.fold_left aux (aux acc ret) args
-  in
-  aux VarsSet.empty
-
-let free_vars_in_scheme (bound_vars, t) =
-  let free_vars = free_vars_in_type t in
-  VarsSet.diff free_vars bound_vars
-
-let free_vars_in_context ctx =
-  List.fold_left (fun acc (_, ts) -> VarsSet.union acc (free_vars_in_scheme ts))
-    VarsSet.empty ctx
-
-(** [subst_vars vars t0] substitutes type variables [vars] in [t0] for fresh
-    variables. *)
-let subst_vars vars t0 =
-  let tbl = List.map (fun i -> (i, genvar ())) (VarsSet.elements vars) in
-  let rec aux t = match observe t with
-    | Ref _ -> assert false
-    | Unit | Bool | Char | Int | Float -> t
-    | Var (_, i) -> if VarsSet.mem i vars then List.assoc i tbl else t
-    | Tuple tl -> Tuple (List.map aux tl)
-    | Tconstr (s, tl) -> Tconstr (s, List.map aux tl)
-    | Arrow (args, ret) -> Arrow (List.map aux args, aux ret)
-  in
-  let var_num (_, t) = match observe t with
-    | Var (_, i) -> i
-    | _ -> assert false
-  in
-  (VarsSet.of_list (List.map var_num tbl), aux t0)
-
-let generalize ctx t =
-  let bound_vars = free_vars_in_context ctx in
-  let free_vars = free_vars_in_type t in
-  subst_vars (VarsSet.diff free_vars bound_vars) t
-
-let instantiate (vars, t) = subst_vars vars t |> snd
-
 let pp_scheme ppf (vars, t) =
-  match VarsSet.elements vars with
+  match VarSet.elements vars with
   | [] -> pp ppf t
   | l -> fprintf ppf "@[forall @[%a@].@;<1 2>@[%a@]@]"
            (pp_list_comma pp_var) l pp t
-
-(** {2 Typing contexts} *)
-
-let lookup ~loc s ctx =
-  try List.assoc s ctx
-  with Not_found -> errorf ~loc "Unbound identifier `%s'" s ()

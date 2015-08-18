@@ -55,11 +55,11 @@ let mk_exp_var ~loc id t = { loc; typ = t; data = Var id; }
 let mk_exp_constr ~loc id t el = { loc; typ = t; data = Constr (id, el); }
 
 let mk_exp_var_lookup ~loc ctx id =
-  let tysc = EmlType.lookup ~loc id ctx in
+  let tysc = EmlContext.lookup ~loc id ctx in
   mk_exp_var ~loc id (EmlType.instantiate tysc)
 
 let mk_exp_constr_lookup ~loc ctx id el =
-  let tysc = EmlType.lookup ~loc id ctx in
+  let tysc = EmlContext.lookup ~loc id ctx in
   let t_args = List.map (fun ei -> ei.typ) el in
   let t_ret = EmlType.genvar () in
   match EmlType.unarrow (EmlType.instantiate tysc) with
@@ -139,9 +139,7 @@ let mk_exp_abs ?arg_types ~loc ctx f args e_body =
   let t_args = match arg_types with
     | None -> List.map (fun _ -> EmlType.genvar ()) args
     | Some t_args -> t_args in
-  let ctx' = List.fold_left2 (fun acc t -> function
-      | Some x -> (x, EmlType.scheme t) :: acc
-      | None -> acc) ctx t_args args in
+  let ctx' = EmlContext.add_args args t_args ctx in
   let e_body' = f ctx' e_body in
   let t_fun = EmlType.Arrow (t_args, e_body'.typ) in
   { loc; typ = t_fun; data = Abs (args, e_body'); }
@@ -149,16 +147,16 @@ let mk_exp_abs ?arg_types ~loc ctx f args e_body =
 let mk_exp_let_rhs ~loc ctx f rf id e1 =
   let e1' = if not rf then f ctx e1 else begin
       let tx = EmlType.genvar () in
-      let e1' = f ((id, EmlType.scheme tx) :: ctx) e1 in
+      let e1' = f (EmlContext.add_var id (EmlType.scheme tx) ctx) e1 in
       EmlType.unify ~loc tx e1'.typ;
       e1'
     end in
-  let ts = EmlType.generalize ctx e1'.typ in
+  let ts = EmlContext.generalize_type ctx e1'.typ in
   (ts, e1')
 
 let mk_exp_let ~loc ctx f rf id e1 e2 =
   let (ts, e1') = mk_exp_let_rhs ~loc ctx f rf id e1 in
-  let e2' = f ((id, ts) :: ctx) e2 in
+  let e2' = f (EmlContext.add_var id ts ctx) e2 in
   { loc; typ = e2'.typ; data = Let (rf, id, ts, e1', e2'); }
 
 let mk_exp_simple_let ~loc rf id e1 e2 =
@@ -202,5 +200,7 @@ let fold_map f_vtype f_let init =
 
 let typeof_constrs name args cs =
   let t_ret = EmlType.Tconstr (name, args) in
-  let aux (_, _, t_args) = EmlType.generalize [] (EmlType.Arrow (t_args, t_ret)) in
+  let aux (_, _, t_args) =
+    EmlContext.generalize_type EmlContext.empty (EmlType.Arrow (t_args, t_ret))
+  in
   List.map aux cs
