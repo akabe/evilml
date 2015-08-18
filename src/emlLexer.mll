@@ -53,23 +53,40 @@ let make_ident lexbuf =
         "Prefix `__ml_' is reserved: %s" s ()
     else if 'A' <= s.[0] && s.[0] <= 'Z' then UIDENT s else LIDENT s
 
+let get_int lexbuf =
+  let s = Lexing.lexeme lexbuf in
+  try int_of_string s
+  with _ -> errorf ~loc:(EmlLocation.from_lexbuf lexbuf)
+              "Error: Illegal integer literal %s" s ()
+
+let get_float lexbuf =
+  let s = Lexing.lexeme lexbuf in
+  try float_of_string s
+  with _ -> errorf ~loc:(EmlLocation.from_lexbuf lexbuf)
+              "Error: Illegal float literal %s" s ()
+
 let get_quoted lexbuf =
   let s = Lexing.lexeme lexbuf in
-  String.sub s 1 (String.length s - 2)
-  |> Scanf.unescaped
+  try
+    String.sub s 1 (String.length s - 2)
+    |> Scanf.unescaped
+  with Scanf.Scan_failure msg ->
+    errorf ~loc:(EmlLocation.from_lexbuf lexbuf)
+      "Error: %s" msg ()
 }
 
-let digit = [ '0'-'9' ]
+let bdigit = [ '0'-'1' ]
 let odigit = [ '0'-'7' ]
+let digit = [ '0'-'9' ]
 let xdigit = [ '0'-'9' 'a'-'f' 'A'-'F' ]
 let upper = [ 'A'-'Z' ]
 let lower = [ 'a'-'z' ]
 let sign = [ '+' '-' ]
 
-let int_literal = digit+ | "0x" xdigit+
+let int_literal = digit+ | "0x" xdigit+ | "0b" bdigit+
 let float_literal = digit+ ('.' digit*)? (['e' 'E'] sign? digit+)?
 let char_literal = '\'' ([^ '\\' '\''] | '\\' _
-                        | '\\' odigit odigit odigit
+                        | '\\' digit+
                         | "\\x" xdigit xdigit) '\''
 let str_literal = '\"' ([^ '\\' '\"'] | '\\' _)* '\"'
 let identifier = (upper | lower | '_') (digit | upper | lower | '_') *
@@ -109,8 +126,8 @@ rule main = parse
 | ']'            { RBRACKET }
 | '_'            { UNDERSCORE }
 | '\''           { QUOTE }
-| int_literal    { LITERAL_INT (int_of_string (Lexing.lexeme lexbuf)) }
-| float_literal  { LITERAL_FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
+| int_literal    { LITERAL_INT (get_int lexbuf) }
+| float_literal  { LITERAL_FLOAT (get_float lexbuf) }
 | char_literal   { LITERAL_CHAR ((get_quoted lexbuf).[0]) }
 | str_literal    { LITERAL_STRING (get_quoted lexbuf) }
 | identifier     { make_ident lexbuf }
