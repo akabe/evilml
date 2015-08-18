@@ -84,6 +84,14 @@ struct
     in
     aux 0 x
 
+  let iter3 f =
+    let rec aux xs ys zs = match xs, ys, zs with
+      | [], [], [] -> ()
+      | x :: xs, y :: ys, z :: zs -> f x y z ; aux xs ys zs
+      | _ -> failwith "EmlUtils.List.iter3"
+    in
+    aux
+
   let rev_fold_map f init x =
     fold_left
       (fun (acc, rev_x) xi ->

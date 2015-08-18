@@ -45,41 +45,18 @@ and 'a expr_desc =
   | Ext of 'a (* extended *)
         [@@deriving show]
 
-let mk_exp_error ~loc () = { loc; typ = EmlType.genvar (); data = Error; }
+let mk_exp_error ~loc () = { loc; typ = EmlType.fresh_var (); data = Error; }
 let mk_exp_unit ~loc () = { loc; typ = EmlType.Unit; data = Const S.Unit; }
 let mk_exp_bool ~loc b = { loc; typ = EmlType.Bool; data = Const (S.Bool b); }
 let mk_exp_char ~loc c = { loc; typ = EmlType.Char; data = Const (S.Char c); }
 let mk_exp_int ~loc n = { loc; typ = EmlType.Int; data = Const (S.Int n); }
-let mk_exp_float ~loc x = { loc; typ = EmlType.Float; data = Const (S.Float x); }
+let mk_exp_float ~loc x = { loc; typ = EmlType.Float; data = Const (S.Float x);}
 let mk_exp_var ~loc id t = { loc; typ = t; data = Var id; }
 let mk_exp_constr ~loc id t el = { loc; typ = t; data = Constr (id, el); }
 
 let mk_exp_var_lookup ~loc ctx id =
-  let tysc = EmlContext.lookup ~loc id ctx in
+  let tysc = EmlContext.lookup_var ~loc id ctx in
   mk_exp_var ~loc id (EmlType.instantiate tysc)
-
-let mk_exp_constr_lookup ~loc ctx id el =
-  let tysc = EmlContext.lookup ~loc id ctx in
-  let t_args = List.map (fun ei -> ei.typ) el in
-  let t_ret = EmlType.genvar () in
-  match EmlType.unarrow (EmlType.instantiate tysc) with
-  | None -> errorf ~loc "Constructor %s has illegal type %a"
-              id EmlType.pp_scheme tysc ()
-  | Some (u_args, u_ret) ->
-    let m, n = List.length t_args, List.length u_args in
-    let t_args, el =
-      if m = n then t_args, el
-      else if n = 1 && m > 1
-      then begin
-        let typ = EmlType.Tuple t_args in
-        ([typ], [{ loc; typ; data = Tuple el; }])
-      end
-      else errorf ~loc "Constructor %s expects %d argument(s) \
-                        but %d argument(s) are applied" id n m ()
-    in
-    List.iter2 (EmlType.unify ~loc) u_args t_args;
-    EmlType.unify ~loc u_ret t_ret;
-    mk_exp_constr ~loc id t_ret el
 
 let mk_exp_tuple ~loc el =
   let tl = List.map (fun ei -> ei.typ) el in
@@ -130,14 +107,14 @@ let mk_exp_if ~loc e1 e2 e3 =
 
 let mk_exp_app ~loc e_fun e_args =
   let t_args = List.map (fun ei -> ei.typ) e_args in
-  let t_ret = EmlType.genvar () in
+  let t_ret = EmlType.fresh_var () in
   let t_fun = EmlType.Arrow (t_args, t_ret) in
   EmlType.unify ~loc e_fun.typ t_fun;
   { loc; typ = t_ret; data = App (e_fun, e_args); }
 
 let mk_exp_abs ?arg_types ~loc ctx f args e_body =
   let t_args = match arg_types with
-    | None -> List.map (fun _ -> EmlType.genvar ()) args
+    | None -> List.map (fun _ -> EmlType.fresh_var ()) args
     | Some t_args -> t_args in
   let ctx' = EmlContext.add_args args t_args ctx in
   let e_body' = f ctx' e_body in
@@ -146,7 +123,7 @@ let mk_exp_abs ?arg_types ~loc ctx f args e_body =
 
 let mk_exp_let_rhs ~loc ctx f rf id e1 =
   let e1' = if not rf then f ctx e1 else begin
-      let tx = EmlType.genvar () in
+      let tx = EmlType.fresh_var () in
       let e1' = f (EmlContext.add_var id (EmlType.scheme tx) ctx) e1 in
       EmlType.unify ~loc tx e1'.typ;
       e1'
@@ -166,21 +143,16 @@ let mk_exp_simple_let ~loc rf id e1 e2 =
 
 module L = EmlLocation
 
-type constr_tag = int [@@deriving show]
-
 type 'a base_top = 'a top_desc EmlLocation.loc
 and 'a top_desc =
-  | Top_variant_type
-    of string (* type name *)
-       * EmlType.t list (* type parameters of type constructor *)
-       * (constr_tag * string * EmlType.t list) list (* constructors *)
+  | Top_type of EmlType.decl
   | Top_let of bool * string * EmlType.scheme * 'a base_expr
   | Top_code of string
                  [@@deriving show]
 
 let map f =
   let aux = function
-    | Top_variant_type (name, args, cs) -> Top_variant_type (name, args, cs)
+    | Top_type decl -> Top_type decl
     | Top_let (rf, id, ts, e) -> Top_let (rf, id, ts, f e)
     | Top_code s -> Top_code s
   in
@@ -188,8 +160,8 @@ let map f =
 
 let fold_map f_vtype f_let init =
   let aux acc { L.loc; L.data; } = match data with
-    | Top_variant_type (name, args, cs) ->
-      let (acc', data) = f_vtype loc acc name args cs in
+    | Top_type decl ->
+      let (acc', data) = f_vtype loc acc decl in
       (acc', { L.loc; L.data; })
     | Top_let (rf, id, ts, e) ->
       let (acc', data) = f_let loc acc rf id ts e in

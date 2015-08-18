@@ -107,7 +107,7 @@ let check_variant_type fv codes constrs =
 let convert tops0 =
   let aux top (fv, codes, tops) = match top.L.data with
     | Top_code s -> (fv, s :: codes, top :: tops)
-    | Top_variant_type (name, _, constrs) ->
+    | Top_type (EmlType.Variant (name, _, constrs)) ->
       begin
         match check_variant_type fv codes constrs with
         | (true, fv') -> (fv', codes, top :: tops)

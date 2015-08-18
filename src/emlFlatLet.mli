@@ -40,7 +40,7 @@ and let_expr_desc =
   | Let_fun of bool * string * EmlType.scheme * string option list * let_expr
 
 type top =
-  | Top_variant_type of string * EmlType.t list * (int * string * EmlType.t list) list
+  | Top_type of EmlType.decl
   | Top_let of let_expr_desc
   | Top_code of string [@@deriving show]
 

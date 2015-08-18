@@ -200,7 +200,7 @@ let conv_constr (tag, id, t_deps) =
 let convert ~header =
   let aux rev_tops = function
     | F.Top_let led -> snd (conv_let_expr_desc [] led) :: rev_tops
-    | F.Top_variant_type (_, _, constrs) ->
+    | F.Top_type (EmlType.Variant (_, _, constrs)) ->
       let constrs' = List.rev_map conv_constr constrs in
       constrs' @ rev_tops
     | F.Top_code s -> Code s :: rev_tops

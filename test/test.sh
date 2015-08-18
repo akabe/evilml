@@ -4,6 +4,8 @@ set -eu
 #EVILML="../evilml.native -I ../include --header evilml.hpp --embed --verbose"
 EVILML="../evilml.native -I ../include --header ../include/evilml.hpp --embed --verbose"
 
+export OCAMLRUNPARAM=b
+
 echo "Checking fib.ml ..."
 $EVILML fib.ml
 g++ fib.cpp -o fib.out

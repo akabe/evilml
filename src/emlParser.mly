@@ -4,15 +4,6 @@ open Format
 open EmlSyntax
 open EmlLocation
 
-let check_dup ~loc l =
-  match List.duplicated l with
-  | [] -> ()
-  | dups -> errorf ~loc "Duplicated identifier(s): %a"
-              (pp_list_comma pp_print_string) dups ()
-
-let check_dup_args ~loc args =
-  check_dup ~loc (List.filter_map (fun x -> x) args)
-
 let mk ?(loc = from_symbol ()) data = { loc; data; }
 
 let mk_exp_unary_plus e =
@@ -49,72 +40,14 @@ let mk_pat_string ?loc s =
   |> List.rev
   |> mk_pat_list ?loc
 
-let resolve_scope_tyvars ~loc tbl =
-  let rec aux t = match EmlType.observe t with
-    | EmlType.Ref _ -> assert false
-    | EmlType.Unit | EmlType.Bool | EmlType.Char | EmlType.Int | EmlType.Float -> t
-    | EmlType.Var (None, _) -> t
-    | EmlType.Var (Some s, _) ->
-      if Hashtbl.mem tbl s then EmlType.Var (Some s, Hashtbl.find tbl s)
-      else errorf ~loc "Unbound type parameter %s" s ()
-    | EmlType.Arrow (args, ret) -> EmlType.Arrow (List.map aux args, aux ret)
-    | EmlType.Tuple tl -> EmlType.Tuple (List.map aux tl)
-    | EmlType.Tconstr (s, tl) -> EmlType.Tconstr (s, List.map aux tl)
-  in
-  List.map aux
-
-let mk_type ?(loc = EmlLocation.from_symbol ()) name rev_args rev_constrs =
-  check_dup_args ~loc rev_args;
-  check_dup ~loc (List.map fst rev_constrs);
-  let tbl = Hashtbl.create 4 in
-  let args = rev_args
-             |> List.rev
-             |> List.map (fun name -> EmlType.genvar ?name ()) in
-  List.iter (fun t -> match EmlType.observe t with
-      | EmlType.Var (Some s, i) -> Hashtbl.add tbl s i
-      | _ -> ()) args;
-  let constrs = rev_constrs
-                |> List.rev
-                |> List.map (fun (name, t) ->
-                    (name, resolve_scope_tyvars ~loc tbl t)) in
-  Top_variant_type (name, args, constrs) |> mk ~loc
-
-(** [find_type name tops] finds the declaration of type [name]. *)
-let find_type name =
-  let aux top = match top.data with
-    | Top_variant_type (s, args, constrs) when s = name -> Some (args, constrs)
-    | _ -> None
-  in
-  List.find_map aux
-
-(** [check_type ~loc tops t] checks the number of type parameters of type
-    constructors in type [t]. *)
-let check_type ~loc tops =
-  let rec aux t = match EmlType.observe t with
-    | EmlType.Ref _ -> assert false
-    | EmlType.Unit | EmlType.Bool | EmlType.Char | EmlType.Int | EmlType.Float
-    | EmlType.Var _ -> ()
-    | EmlType.Arrow (args, ret) -> List.iter aux (ret :: args)
-    | EmlType.Tuple tl -> List.iter aux tl
-    | EmlType.Tconstr (name, args) ->
-      match find_type name tops with
-      | None -> errorf ~loc "The type constructor %s is not defined" name ()
-      | Some (args', _) ->
-        let m, n = List.length args, List.length args' in
-        if m <> n
-        then errorf ~loc "The type constructor %s expects %d argument(s), \
-                          but is here applied to %d argument(s)" name n m ()
-  in
-  aux
-
-let check_constrs ~loc tops =
-  List.iter (snd >> List.iter (check_type ~loc tops))
+let mk_type ?loc name rev_args rev_constrs =
+  mk ?loc (Top_variant_type (name, List.rev rev_args, List.rev rev_constrs))
 
 let check_top_shadowing tops =
   let aux (types, vars) { loc; data; } = match data with
     | Top_variant_type (s, _, constrs) ->
       (* Check top-level shadowing of types and constructors. *)
-      if List.mem s types then errorf ~loc "EmlType %s is already defined" s ();
+      if List.mem s types then errorf ~loc "Type %s is already defined" s ();
       let names = List.map fst constrs in
       List.iter (fun s ->
           if List.mem s vars
@@ -199,13 +132,8 @@ main:
  *********************************************************************/
 
 toplevel:
-    { [] }
-| toplevel toplevel_phrase
-    { let tops = $2 :: $1 in
-      (match $2.data with
-       | Top_variant_type (_, _, cs) -> check_constrs ~loc:$2.loc tops cs
-       | _ -> ());
-      tops }
+                            { [] }
+| toplevel toplevel_phrase  { $2 :: $1 }
 
 toplevel_phrase:
   CPP_CODE
@@ -223,12 +151,10 @@ toplevel_phrase:
     { mk (Top_let (false, $2, $4)) }
 | LET LIDENT formal_args EQUAL expr
   %prec prec_let
-    { check_dup_args ~loc:(EmlLocation.from_rhs 3) $3;
-      mk (Top_let (false, $2, mk (Abs (List.rev $3, $5)))) }
+    { mk (Top_let (false, $2, mk (Abs (List.rev $3, $5)))) }
 | LET REC LIDENT formal_args EQUAL expr
   %prec prec_let
-    { check_dup_args ~loc:(EmlLocation.from_rhs 4) $4;
-      mk (Top_let (true, $3, mk (Abs (List.rev $4, $6)))) }
+    { mk (Top_let (true, $3, mk (Abs (List.rev $4, $6)))) }
 
 formal_type_args:
   type_var COMMA type_var         { [$3; $1] }
@@ -267,7 +193,7 @@ tuple_type:
 | tuple_type STAR simple_type  { $3 :: $1 }
 
 simple_type:
-  type_var                              { EmlType.genvar ?name:$1 () }
+  type_var                              { EmlType.fresh_var ?name:$1 () }
 | UNIT                                  { EmlType.Unit }
 | BOOL                                  { EmlType.Bool }
 | CHAR                                  { EmlType.Char }
@@ -296,8 +222,7 @@ expr:
     { $1 }
 | FUN formal_args ARROW expr
   %prec prec_fun
-    { check_dup_args ~loc:(EmlLocation.from_rhs 2) $2;
-      mk (Abs (List.rev $2, $4)) }
+    { mk (Abs (List.rev $2, $4)) }
 | IF expr THEN expr ELSE expr
   %prec prec_if
     { mk (If ($2, $4, $6)) }
@@ -306,12 +231,10 @@ expr:
     { mk (Let (false, $2, $4, $6)) }
 | LET LIDENT formal_args EQUAL expr IN expr
   %prec prec_let
-    { check_dup_args ~loc:(EmlLocation.from_rhs 3) $3;
-      mk (Let (false, $2, mk (Abs (List.rev $3, $5)), $7)) }
+    { mk (Let (false, $2, mk (Abs (List.rev $3, $5)), $7)) }
 | LET REC LIDENT formal_args EQUAL expr IN expr
   %prec prec_let
-    { check_dup_args ~loc:(EmlLocation.from_rhs 4) $4;
-      mk (Let (true, $3, mk (Abs (List.rev $4, $6)), $8)) }
+    { mk (Let (true, $3, mk (Abs (List.rev $4, $6)), $8)) }
 | MATCH expr WITH match_cases
   %prec prec_match
     { mk (Match ($2, List.rev $4)) }

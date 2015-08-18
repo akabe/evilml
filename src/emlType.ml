@@ -18,7 +18,7 @@
 open EmlUtils
 open Format
 
-type type_var = int
+type type_var = int [@@deriving show]
 
 type t =
   | Unit
@@ -41,9 +41,13 @@ module VarSet = Set.Make(struct
 
 (** {2 Types} *)
 
-let genvar =
+let fresh_type_var =
   let c = ref 0 in
-  fun ?name () -> incr c ; Ref (ref (Var (name, !c)))
+  fun () -> incr c ; !c
+
+let make_var ?name i = Ref (ref (Var (name, i)))
+
+let fresh_var ?name () = make_var ?name (fresh_type_var ())
 
 let rec observe = function
   | Ref r -> observe !r
@@ -182,7 +186,9 @@ type context = (string * scheme) list
 let scheme t = (VarSet.empty, t)
 
 let generalize vars t0 =
-  let tbl = List.map (fun i -> (i, genvar ())) (VarSet.elements vars) in
+  let old_vars = VarSet.elements vars in
+  let new_vars = List.map (fun _ -> fresh_type_var ()) old_vars in
+  let tbl = List.map2 (fun i j -> (i, make_var j)) old_vars new_vars in
   let rec aux t = match observe t with
     | Ref _ -> assert false
     | Unit | Bool | Char | Int | Float -> t
@@ -191,11 +197,7 @@ let generalize vars t0 =
     | Tconstr (s, tl) -> Tconstr (s, List.map aux tl)
     | Arrow (args, ret) -> Arrow (List.map aux args, aux ret)
   in
-  let var_num (_, t) = match observe t with
-    | Var (_, i) -> i
-    | _ -> assert false
-  in
-  (VarSet.of_list (List.map var_num tbl), aux t0)
+  (VarSet.of_list new_vars, aux t0)
 
 let instantiate (vars, t) = generalize vars t |> snd
 
@@ -214,3 +216,26 @@ let pp_scheme ppf (vars, t) =
   | [] -> pp ppf t
   | l -> fprintf ppf "@[forall @[%a@].@;<1 2>@[%a@]@]"
            (pp_list_comma pp_var) l pp t
+
+(** {2 Type declaration} *)
+
+type constr_tag = int [@@deriving show]
+
+type decl =
+  | Variant of string (* type name *)
+               * type_var list (* type parameters of type constructor *)
+               * (constr_tag * string * t list) list (* constructors *)
+                 [@@deriving show]
+
+let make_constr_tags =
+  List.mapi (fun i (_, cargs) ->
+      let n = List.length cargs in (* # of arguments *)
+      let m = if n >= 2 then 2 else n in (* m = 0, 1, 2 [2 bits] *)
+      ((i + 1) lsl 2) lor m)
+
+let constr_scheme ty_name ty_vars c_args =
+  let ty_args = List.map (make_var ?name:None) ty_vars in
+  let ret = Tconstr (ty_name, ty_args) in
+  let t = Arrow (c_args, ret) in
+  let fv = fv_in_type t in
+  generalize fv t

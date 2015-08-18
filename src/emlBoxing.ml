@@ -65,7 +65,7 @@ let rec conv_expr tt ctx e = match e.data with
   | Var id ->
     let typ = (*try EmlType.instantiate (List.assoc id ctx)
                 with Not_found -> e.typ*)
-      EmlType.instantiate (EmlContext.lookup ~loc:e.loc id ctx) in
+      EmlType.instantiate (EmlContext.lookup_var ~loc:e.loc id ctx) in
     box_unbox_expr tt { e with data = Var id; typ }
   | Error -> (* box/unbox is not needed since Error has forall 'a. 'a. *)
     { e with data = Error; typ = box_unbox_type tt e.typ; }
@@ -120,13 +120,12 @@ let conv_constr (tag, id, args) =
   (tag, id, List.map (EmlType.box_type >> snd) args)
 
 let convert ctx tops =
-  let f_vtype _ ctx name args constrs =
-    let constrs' = List.map conv_constr constrs in
-    let tss = typeof_constrs name args constrs' in
-    let ctx' = List.fold_left2
-        (fun acc (_, id, _) ts -> EmlContext.add_var id ts ctx)
-        ctx constrs' tss in
-    (ctx', Top_variant_type (name, args, constrs')) (* TODO *)
+  let f_vtype _ ctx = function
+    | EmlType.Variant (name, args, constrs) ->
+      let constrs' = List.map conv_constr constrs in
+      let decl = EmlType.Variant (name, args, constrs') in
+      let ctx' = EmlContext.add_type decl ctx in
+      (ctx', Top_type decl)
   in
   let f_let _ ctx rf id ts e =
     let (ts', e') = conv_let_rhs ctx rf id ts e in

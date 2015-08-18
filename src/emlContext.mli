@@ -23,7 +23,15 @@ val add_var : string -> EmlType.scheme -> t -> t
 
 val add_args : string option list -> EmlType.t list -> t -> t
 
-val lookup : loc:EmlLocation.t -> string -> t -> EmlType.scheme
+val add_type : EmlType.decl -> t -> t
+
+val lookup_var : loc:EmlLocation.t -> string -> t -> EmlType.scheme
+
+val lookup_constr :
+  loc:EmlLocation.t -> string -> t ->
+  EmlType.constr_tag * EmlType.t list * EmlType.t
+
+val lookup_type : loc:EmlLocation.t -> string -> t -> EmlType.decl
 
 val fv_in_context : t -> EmlType.VarSet.t
 

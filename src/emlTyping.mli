@@ -20,7 +20,7 @@ and pattern_desc =
   | Pvar of string option
   | Pconst of EmlSyntax.const_pattern
   | Ptuple of pattern list
-  | Pconstr of EmlTypedExpr.constr_tag * string * pattern list
+  | Pconstr of EmlType.constr_tag * string * pattern list
 
 type expr = ext_expr EmlTypedExpr.base_expr
 and ext_expr =

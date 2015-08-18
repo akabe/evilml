@@ -47,7 +47,7 @@ and let_expr_desc =
   | Let_fun of bool * string * EmlType.scheme * string option list * let_expr
 
 type top =
-  | Top_variant_type of string * EmlType.t list * (int * string * EmlType.t list) list
+  | Top_type of EmlType.decl
   | Top_let of let_expr_desc
   | Top_code of string [@@deriving show]
 
@@ -111,8 +111,7 @@ and conv_let_val rev_lets id ts e =
 let convert tops =
   let aux rev_tops e = match e.L.data with
     | E.Top_code s -> Top_code s :: rev_tops
-    | E.Top_variant_type (name, args, cs) ->
-      (Top_variant_type (name, args, cs)) :: rev_tops
+    | E.Top_type decl -> Top_type decl :: rev_tops
     | E.Top_let (rf, id, ts, { E.data = E.Abs (args, e11); _ }) ->
       (Top_let (conv_abs rf id ts args e11)) :: rev_tops
     | E.Top_let (_, id, ts, e1) ->

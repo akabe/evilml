@@ -79,6 +79,6 @@ let rec conv_expr e = match e.data with
   | Ext (T.Match (e0, cases)) ->
     let e0' = conv_expr e0 in
     List.fold_right (fun (pi, ei) acc -> conv_pat e0' (conv_expr ei) acc pi)
-      cases { e with typ = EmlType.genvar (); data = Error; }
+      cases { e with typ = EmlType.fresh_var (); data = Error; }
 
 let convert = map conv_expr

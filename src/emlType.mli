@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-type type_var
+type type_var [@@deriving show]
 
 type t =
   | Unit
@@ -35,7 +35,8 @@ module VarSet : Set.S with type elt = type_var
 
 (** {2 Types} *)
 
-val genvar : ?name:string -> unit -> t
+val fresh_type_var : unit -> type_var
+val fresh_var : ?name:string -> unit -> t
 
 val observe : t -> t
 val is_basetype : t -> bool
@@ -73,3 +74,17 @@ val box_scheme : scheme -> bool * scheme
 val unbox_scheme : scheme -> bool * scheme
 
 val pp_scheme : Format.formatter -> scheme -> unit
+
+(** {2 Type declaration} *)
+
+type constr_tag = int [@@deriving show]
+
+type decl =
+  | Variant of string (* type name *)
+               * type_var list (* type parameters of type constructor *)
+               * (constr_tag * string * t list) list (* constructors *)
+                 [@@deriving show]
+
+val make_constr_tags : (string * t list) list -> constr_tag list
+
+val constr_scheme : string -> type_var list -> t list -> scheme

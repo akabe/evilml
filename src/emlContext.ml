@@ -17,26 +17,63 @@
 
 open EmlUtils
 
-type elt = string * EmlType.scheme
+type elt =
+  | Var of string * EmlType.scheme
+  | Constr of string * EmlType.constr_tag * EmlType.scheme
+  | Type of EmlType.decl
 
 type t = elt list
 
 let empty = []
 
-let add_var id tysc ctx = (id, tysc) :: ctx
+let add_var id tysc ctx = Var (id, tysc) :: ctx
 
 let add_args ids tys ctx =
   List.fold_left2 (fun acc t -> function
-      | Some x -> (x, EmlType.scheme t) :: acc
+      | Some x -> Var (x, EmlType.scheme t) :: acc
       | None -> acc) ctx tys ids
 
-let lookup ~loc id ctx =
-  try List.assoc id ctx
-  with Not_found -> errorf ~loc "Unbound identifier `%s'" id ()
+let add_type (EmlType.Variant (ty_name, ty_vars, constrs) as decl) ctx =
+  let add_constr ctx (tag, c_name, c_args) =
+    let tysc = EmlType.constr_scheme ty_name ty_vars c_args in
+    Constr (c_name, tag, tysc) :: ctx
+  in
+  List.fold_left add_constr (Type decl :: ctx) constrs
+
+let lookup_var ~loc id ctx =
+  let aux = function
+    | Var (s, tysc) when id = s -> Some tysc
+    | _ -> None
+  in
+  match List.find_map aux ctx with
+  | Some tysc -> tysc
+  | None -> errorf ~loc "Unbound variable `%s'" id ()
+
+let lookup_constr ~loc id ctx =
+  let aux = function
+    | Constr (s, tag, tysc) when id = s ->
+      Some (tag, EmlType.unarrow (EmlType.instantiate tysc))
+    | _ -> None
+  in
+  match List.find_map aux ctx with
+  | Some (tag, Some (t_args, t_ret)) -> (tag, t_args, t_ret)
+  | Some (_, None) -> errorf ~loc "Constructor %s has strange type" id ()
+  | None -> errorf ~loc "Unbound constructor `%s'" id ()
+
+let lookup_type ~loc id ctx =
+  let aux = function
+    | Type (EmlType.Variant (s, _, _) as decl) when id = s -> Some decl
+    | _ -> None
+  in
+  match List.find_map aux ctx with
+  | Some decl -> decl
+  | None -> errorf ~loc "Unbound type constructor `%s'" id ()
 
 let fv_in_context =
   List.fold_left
-    (fun acc (_, ts) -> EmlType.VarSet.union acc (EmlType.fv_in_scheme ts))
+    (fun acc -> function
+       | Var (_, ts) -> EmlType.VarSet.union acc (EmlType.fv_in_scheme ts)
+       | _ -> acc)
     EmlType.VarSet.empty
 
 let generalize_type ctx t =

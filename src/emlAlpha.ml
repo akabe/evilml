@@ -29,7 +29,7 @@ let make_renamer tbl0 tops =
     (StringSet.add id2 seen, (id1, id2) :: tbl)
   in
   let aux rnm top = match top.EmlLocation.data with
-    | Top_code _ | Top_variant_type _ -> rnm
+    | Top_code _ | Top_type _ -> rnm
     | Top_let (_, id, _, _) -> add ~loc:top.EmlLocation.loc rnm id id
   in
   let rnm =
@@ -96,7 +96,7 @@ let rec conv_expr tbl seen e = match e.data with
 
 let convert (seen, tbl) tops =
   let aux = function (* top-level identifiers will not be renamed. *)
-    | Top_code _ | Top_variant_type _ as e -> e
+    | Top_code _ | Top_type _ as e -> e
     | Top_let(rf, id, ts, e) -> Top_let(rf, id, ts, snd (conv_expr tbl seen e))
   in
   List.map (EmlLocation.map aux) tops

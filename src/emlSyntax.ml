@@ -60,7 +60,9 @@ and expr_desc =
 
 type top = top_desc EmlLocation.loc
 and top_desc =
-  | Top_variant_type of string * EmlType.t list * (string * EmlType.t list) list
+  | Top_variant_type of string
+                        * string option list
+                        * (string * EmlType.t list) list
   | Top_let of bool * string * expr
   | Top_code of string
   | Top_use of string
