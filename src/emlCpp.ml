@@ -94,7 +94,7 @@ let rec mk_exp_proj e n i = match n, i with
 let mk_decl_typedef id e = EmlTypedef (id, mk_type_expr e)
 let mk_decl_tag tag =
   Static (member_tag, EmlType.Int, mk_exp_const (EmlSyntax.Int tag))
-let mk_decl_ret e = [mk_decl_tag 0; mk_decl_typedef member_ret e]
+let mk_decl_ret e = [mk_decl_typedef member_ret e]
 
 (** [deps] is a list of variable names dependent on template parameters. *)
 let rec conv_expr deps { F.data; _ } = match data with

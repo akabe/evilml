@@ -23,13 +23,11 @@ template <int n> struct __ml_int {
 
 template <bool, class T, class F>
 struct __ml_if {
-  static const int tag = 0;
   typedef T type;
 };
 
 template <class T, class F>
 struct __ml_if <false, T, F> {
-  static const int tag = 0;
   typedef F type;
 };
 
@@ -52,10 +50,6 @@ private:
   template <int m>
   struct aux <0, -1, m> // x::tag == y::tag && tag == [boxed val]
     : public __ml_int<(x::val > y::val ? 1 : (x::val < y::val ? -1 : 0))> {};
-
-  template <int m>
-  struct aux <0, 0, m> // x::tag == y::tag && tag == [ret val]
-    : public __ml_int<__ml_compare<typename x::type, typename y::type>::val> {};
 
   template <int n>
   struct aux <0, n, 0> // x::tag == y::tag && tag == [nullary constructor]
