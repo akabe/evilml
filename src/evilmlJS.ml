@@ -46,13 +46,13 @@ let make_header embed =
   let hpp_fname = "evilml.hpp" in
   if embed
   then sprintf "#line 1 %S\n%s\n#line 1 \"output.cpp\""
-      hpp_fname Evilml_hpp.contents
+      hpp_fname [%blob "../include/evilml.hpp"]
   else sprintf "#include %S" hpp_fname
 
 let loader loc fname =
   match fname with
-  | "option.ml" -> Lexing.from_string Option_ml.contents
-  | "list.ml" -> Lexing.from_string List_ml.contents
+  | "option.ml" -> Lexing.from_string [%blob "../include/option.ml"]
+  | "list.ml" -> Lexing.from_string [%blob "../include/list.ml"]
   | _ -> errorf ~loc "File %S is not found" fname ()
 
 let compile () =
@@ -92,8 +92,13 @@ let () =
     ignore (addEventListener btn Event.click (Dom.handler handler) (bool false))
   in
   set_onclick "btn_compile" compile;
-  set_onclick "btn_ex_fib" (switch_example Example_fib.contents);
-  set_onclick "btn_ex_qsort" (switch_example Example_qsort.contents);
-  set_onclick "btn_ex_tsort" (switch_example Example_tsort.contents);
-  set_onclick "btn_ex_dijkstra" (switch_example Example_dijkstra.contents);
-  set_onclick "btn_ex_base64" (switch_example Example_base64.contents)
+  set_onclick "btn_ex_fib"
+    (switch_example [%blob "../examples/fib/fib.ml"]);
+  set_onclick "btn_ex_qsort"
+    (switch_example [%blob "../examples/quicksort/qsort.ml"]);
+  set_onclick "btn_ex_tsort"
+    (switch_example [%blob "../examples/topological_sort/tsort.ml"]);
+  set_onclick "btn_ex_dijkstra"
+    (switch_example [%blob "../examples/dijkstra/dijkstra.ml"]);
+  set_onclick "btn_ex_base64"
+    (switch_example [%blob "../examples/base64/base64.ml"])

@@ -12,10 +12,9 @@ AlphaFeatures:           ocamlbuild_more_args
 XOCamlbuildPluginTags:   package(js_of_ocaml.ocamlbuild)
 FilesAB:                 src/emlConfig.ml.ab
 
-PreBuildCommand:         ocaml gen_files.ml
-PostBuildCommand:        cp _build/src/evilmlJS.js html/js/evilml.js
-
-PostCleanCommand:        rm -f src/evilml_hpp.ml
+PostBuildCommand:        js_of_ocaml +js_of_ocaml/weak.js +js_of_ocaml/toplevel.js \
+                           -o html/js/evilml.js \
+                           _build/src/evilmlJS.byte
 
 Executable evilml
   Path:                  src
@@ -29,7 +28,7 @@ Executable evilmlJS
   Path:                  src
   MainIs:                evilmlJS.ml
   BuildTools:            ocamlbuild
-  BuildDepends:          ppx_deriving.show,js_of_ocaml,js_of_ocaml.ppx
+  BuildDepends:          ppx_deriving.show,ppx_blob,js_of_ocaml,js_of_ocaml.ppx
   CompiledObject:        byte
 
 ##
