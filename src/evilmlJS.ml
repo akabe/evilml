@@ -22,8 +22,8 @@ open Dom_html
 
 let input_fname = "(none)"
 
-let editor_get id = to_string (Unsafe.variable id)##getDoc()##getValue()
-let editor_set id s = (Unsafe.variable id)##getDoc()##setValue(string s)
+let editor_get id = to_string (Unsafe.variable id)##getDoc##getValue
+let editor_set id s = (Unsafe.variable id)##getDoc##setValue (string s)
 
 let input id =
   match tagged (getElementById id) with
@@ -56,7 +56,7 @@ let loader loc fname =
   | _ -> errorf ~loc "File %S is not found" fname ()
 
 let compile () =
-  let embed = to_bool (input "chk_embed")##checked in
+  let embed = to_bool (input "chk_embed")##.checked in
   let in_code = editor_get "mlEditor" in
   let bf_tys = create_buffer_formatter 1024 in
   let bf_out = create_buffer_formatter 1024 in
