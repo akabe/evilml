@@ -1,6 +1,6 @@
 # Dependencies
 APT_DEPENDS="opam g++"
-OPAM_DEPENDS="ocamlfind ppx_deriving js_of_ocaml"
+OPAM_DEPENDS="ocamlfind ppx_deriving ppx_blob js_of_ocaml"
 
 # Install OPAM and $APT_DEPENDS
 echo "yes" | sudo add-apt-repository ppa:avsm/ocaml42+opam12
